@@ -37,6 +37,24 @@ func ExpectString(arguments []any, index int, functionName string) (string, erro
 	return value, nil
 }
 
+// ExpectBytes returns a byte slice argument at the given index.
+//
+//	content, err := typemap.ExpectBytes(arguments, 1, "core.fs.write_bytes")
+func ExpectBytes(arguments []any, index int, functionName string) ([]byte, error) {
+	if index >= len(arguments) {
+		return nil, fmt.Errorf("%s expected argument %d", functionName, index)
+	}
+
+	switch typed := arguments[index].(type) {
+	case []byte:
+		return append([]byte(nil), typed...), nil
+	case string:
+		return []byte(typed), nil
+	default:
+		return nil, fmt.Errorf("%s expected argument %d to be []byte, got %T", functionName, index, arguments[index])
+	}
+}
+
 // ExpectMap returns the map argument at the given index.
 //
 //	values, err := typemap.ExpectMap(arguments, 0, "core.options.new")
@@ -158,4 +176,17 @@ func ExpectError(arguments []any, index int, functionName string) (error, error)
 		return nil, fmt.Errorf("%s expected error argument, got %T", functionName, arguments[index])
 	}
 	return value, nil
+}
+
+// OptionalError returns an error argument or nil when the value is None/nil.
+//
+//	err, convErr := typemap.OptionalError(arguments, 0, "core.err.wrap")
+func OptionalError(arguments []any, index int, functionName string) (error, error) {
+	if index >= len(arguments) {
+		return nil, fmt.Errorf("%s expected argument %d", functionName, index)
+	}
+	if arguments[index] == nil {
+		return nil, nil
+	}
+	return ExpectError(arguments, index, functionName)
 }

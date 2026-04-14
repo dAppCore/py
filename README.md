@@ -8,9 +8,10 @@ different syntax surface.
 
 - `runtime/` contains a bootstrap Tier 1 interpreter that validates the CorePy
   module contract and import shape without waiting on the gpython dependency.
-- `bindings/` contains Go-backed bindings for `core.echo`, `core.fs`,
-  `core.json`, `core.options`, `core.config`, `core.data`, `core.service`,
-  `core.log`, and `core.err`.
+- `bindings/` contains Go-backed bindings for the RFC v1 module surface:
+  `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
+  `core.process`, `core.config`, `core.data`, `core.service`, `core.log`,
+  and `core.err`.
 - `py/core/` contains the Python package surface for the RFC v1 modules,
   including docstrings and concrete fallbacks for CPython validation.
 

@@ -8,7 +8,9 @@ import (
 	"dappco.re/go/py/bindings/fs"
 	"dappco.re/go/py/bindings/json"
 	"dappco.re/go/py/bindings/log"
+	"dappco.re/go/py/bindings/medium"
 	"dappco.re/go/py/bindings/options"
+	"dappco.re/go/py/bindings/process"
 	"dappco.re/go/py/bindings/service"
 	"dappco.re/go/py/runtime"
 )
@@ -21,7 +23,9 @@ func DefaultModules(interpreter *runtime.Interpreter) error {
 		echo.Register,
 		fs.Register,
 		json.Register,
+		medium.Register,
 		options.Register,
+		process.Register,
 		config.Register,
 		data.Register,
 		service.Register,

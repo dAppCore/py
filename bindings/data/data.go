@@ -1,7 +1,10 @@
 package data
 
 import (
+	"io/fs"
 	"os"
+	"sort"
+	"strings"
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"
@@ -17,9 +20,13 @@ func Register(interpreter *runtime.Interpreter) error {
 		Documentation: "Embedded content registry backed by dappco.re/go/core",
 		Functions: map[string]runtime.Function{
 			"new":         newData,
+			"mount":       mountPath,
 			"mount_path":  mountPath,
+			"read_file":   readFile,
 			"read_string": readString,
+			"list":        list,
 			"list_names":  listNames,
+			"extract":     extract,
 			"mounts":      mounts,
 		},
 	})
@@ -70,7 +77,43 @@ func readString(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typemap.ResultValue(data.ReadString(path), "core.data.read_string")
+	return typemap.ResultValue(data.ReadString(normalizePath(path)), "core.data.read_string")
+}
+
+func readFile(arguments ...any) (any, error) {
+	data, err := typemap.ExpectData(arguments, 0, "core.data.read_file")
+	if err != nil {
+		return nil, err
+	}
+	path, err := typemap.ExpectString(arguments, 1, "core.data.read_file")
+	if err != nil {
+		return nil, err
+	}
+	return typemap.ResultValue(data.ReadFile(normalizePath(path)), "core.data.read_file")
+}
+
+func list(arguments ...any) (any, error) {
+	data, err := typemap.ExpectData(arguments, 0, "core.data.list")
+	if err != nil {
+		return nil, err
+	}
+	path, err := typemap.ExpectString(arguments, 1, "core.data.list")
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := typemap.ResultValue(data.List(normalizePath(path)), "core.data.list")
+	if err != nil {
+		return nil, err
+	}
+
+	entries := value.([]fs.DirEntry)
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 func listNames(arguments ...any) (any, error) {
@@ -82,7 +125,32 @@ func listNames(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typemap.ResultValue(data.ListNames(path), "core.data.list_names")
+	return typemap.ResultValue(data.ListNames(normalizePath(path)), "core.data.list_names")
+}
+
+func extract(arguments ...any) (any, error) {
+	data, err := typemap.ExpectData(arguments, 0, "core.data.extract")
+	if err != nil {
+		return nil, err
+	}
+	path, err := typemap.ExpectString(arguments, 1, "core.data.extract")
+	if err != nil {
+		return nil, err
+	}
+	targetDirectory, err := typemap.ExpectString(arguments, 2, "core.data.extract")
+	if err != nil {
+		return nil, err
+	}
+
+	var templateData any
+	if len(arguments) > 3 {
+		templateData = arguments[3]
+	}
+
+	if _, err := typemap.ResultValue(data.Extract(normalizePath(path), targetDirectory, templateData), "core.data.extract"); err != nil {
+		return nil, err
+	}
+	return targetDirectory, nil
 }
 
 func mounts(arguments ...any) (any, error) {
@@ -91,4 +159,11 @@ func mounts(arguments ...any) (any, error) {
 		return nil, err
 	}
 	return data.Mounts(), nil
+}
+
+func normalizePath(path string) string {
+	if path == "" || strings.Contains(path, "/") {
+		return path
+	}
+	return path + "/."
 }

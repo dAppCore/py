@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
@@ -14,9 +16,12 @@ func Register(interpreter *runtime.Interpreter) error {
 		Name:          "core.service",
 		Documentation: "Service registry backed by dappco.re/go/core",
 		Functions: map[string]runtime.Function{
-			"new":      newCore,
-			"register": registerService,
-			"names":    names,
+			"new":       newCore,
+			"register":  registerService,
+			"get":       getService,
+			"names":     names,
+			"start_all": startAll,
+			"stop_all":  stopAll,
 		},
 	})
 }
@@ -41,10 +46,28 @@ func registerService(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(arguments) > 2 {
+		if _, err := typemap.ResultValue(instance.RegisterService(name, arguments[2]), "core.service.register"); err != nil {
+			return nil, err
+		}
+		return instance, nil
+	}
 	if _, err := typemap.ResultValue(instance.Service(name, core.Service{}), "core.service.register"); err != nil {
 		return nil, err
 	}
 	return instance, nil
+}
+
+func getService(arguments ...any) (any, error) {
+	instance, err := typemap.ExpectCore(arguments, 0, "core.service.get")
+	if err != nil {
+		return nil, err
+	}
+	name, err := typemap.ExpectString(arguments, 1, "core.service.get")
+	if err != nil {
+		return nil, err
+	}
+	return typemap.ResultValue(instance.Service(name), "core.service.get")
 }
 
 func names(arguments ...any) (any, error) {
@@ -53,4 +76,26 @@ func names(arguments ...any) (any, error) {
 		return nil, err
 	}
 	return instance.Services(), nil
+}
+
+func startAll(arguments ...any) (any, error) {
+	instance, err := typemap.ExpectCore(arguments, 0, "core.service.start_all")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := typemap.ResultValue(instance.ServiceStartup(context.Background(), nil), "core.service.start_all"); err != nil {
+		return nil, err
+	}
+	return true, nil
+}
+
+func stopAll(arguments ...any) (any, error) {
+	instance, err := typemap.ExpectCore(arguments, 0, "core.service.stop_all")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := typemap.ResultValue(instance.ServiceShutdown(context.Background()), "core.service.stop_all"); err != nil {
+		return nil, err
+	}
+	return true, nil
 }
