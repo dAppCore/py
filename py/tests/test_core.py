@@ -156,6 +156,8 @@ class CorePyTests(unittest.TestCase):
         self.assertTrue(core_math.epsilon_equal(0.1 + 0.2, 0.3, 1e-9))
         self.assertEqual(core_math.normalize([10, 20, 30]), [0.0, 0.5, 1.0])
         self.assertEqual(core_math.rescale([10, 20, 30], -1.0, 1.0), [-1.0, 0.0, 1.0])
+        self.assertEqual(core_math.moving_average([1, 3, 6, 10], window=2), [1.0, 2.0, 4.5, 8.0])
+        self.assertEqual(core_math.difference([1, 3, 6, 10]), [2.0, 3.0, 4.0])
 
         tree = core_math.kdtree.build([[0.0, 0.0], [1.0, 1.0], [3.0, 3.0]], metric="euclidean")
         neighbours = tree.nearest([0.8, 0.8], k=2)
@@ -172,6 +174,7 @@ class CorePyTests(unittest.TestCase):
     def test_math_submodules_are_importable(self) -> None:
         kdtree_module = importlib.import_module("core.math.kdtree")
         knn_module = importlib.import_module("core.math.knn")
+        signal_module = importlib.import_module("core.math.signal")
 
         tree = kdtree_module.build([[0.0, 0.0], [1.0, 1.0]], metric="euclidean")
         self.assertEqual([item["index"] for item in tree.nearest([0.8, 0.8], k=2)], [1, 0])
@@ -183,6 +186,8 @@ class CorePyTests(unittest.TestCase):
             metric="cosine",
         )
         self.assertEqual([item["index"] for item in neighbours], [0, 2])
+        self.assertEqual(signal_module.moving_average([1, 3, 6, 10], window=2), [1.0, 2.0, 4.5, 8.0])
+        self.assertEqual(signal_module.difference([1, 3, 6, 10], lag=2), [5.0, 7.0])
 
 
 if __name__ == "__main__":

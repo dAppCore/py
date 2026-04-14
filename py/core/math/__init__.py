@@ -1,10 +1,11 @@
 """Math helpers for Tier 1-friendly statistics and nearest-neighbour search.
 
 from core import math
-from core.math import kdtree, knn
+from core.math import kdtree, knn, signal
 
 scores = [0.2, 0.4, 0.9]
 average = math.mean(scores)
+smoothed = math.moving_average([1, 3, 6, 10], window=2)
 tree = kdtree.build([[0.0, 0.0], [1.0, 1.0]], metric="euclidean")
 """
 
@@ -15,9 +16,10 @@ import math as mathlib
 import statistics
 from typing import Any, Iterable, Sequence
 
-from . import kdtree, knn
+from . import kdtree, knn, signal
 from ._shared import Number, _float_values
 from .kdtree import KDTree
+from .signal import difference, moving_average
 
 
 def mean(values: Iterable[Number]) -> float:
@@ -126,13 +128,16 @@ def rescale(values: Iterable[Number], new_min: float, new_max: float) -> list[fl
 __all__ = [
     "KDTree",
     "binary_search",
+    "difference",
     "epsilon_equal",
     "kdtree",
     "knn",
     "mean",
     "median",
+    "moving_average",
     "normalize",
     "rescale",
+    "signal",
     "sort",
     "stdev",
     "variance",

@@ -299,6 +299,27 @@ print(search([[1.0, 0.0], [0.0, 1.0], [0.8, 0.2]], [1.0, 0.0], k=2, metric="cosi
 	}
 }
 
+func TestInterpreter_Run_MathSignalImports_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import math
+from core.math import signal
+values = [1, 3, 6, 10]
+print(math.moving_average(values, window=2))
+print(signal.difference(values))
+print(math.signal.difference(values, lag=2))
+`)
+	if err != nil {
+		t.Fatalf("run math signal imports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if !reflect.DeepEqual(lines, []string{"[1, 2, 4.5, 8]", "[2, 3, 4]", "[5, 7]"}) {
+		t.Fatalf("unexpected signal output lines %#v", lines)
+	}
+}
+
 func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 
@@ -436,6 +457,22 @@ func TestInterpreter_Call_MathPrimitives_Good(t *testing.T) {
 	cosineNeighbors := cosine.([]map[string]any)
 	if cosineNeighbors[0]["index"] != 0 || cosineNeighbors[1]["index"] != 2 {
 		t.Fatalf("unexpected cosine neighbour order %#v", cosineNeighbors)
+	}
+
+	smoothed, err := interpreter.Call("core.math", "moving_average", []any{1, 3, 6, 10}, corepyruntime.KeywordArguments{"window": 2})
+	if err != nil {
+		t.Fatalf("moving average: %v", err)
+	}
+	if !reflect.DeepEqual(smoothed, []float64{1, 2, 4.5, 8}) {
+		t.Fatalf("unexpected smoothed values %#v", smoothed)
+	}
+
+	delta, err := interpreter.Call("core.math.signal", "difference", []any{1, 3, 6, 10}, corepyruntime.KeywordArguments{"lag": 2})
+	if err != nil {
+		t.Fatalf("difference: %v", err)
+	}
+	if !reflect.DeepEqual(delta, []float64{5, 7}) {
+		t.Fatalf("unexpected difference values %#v", delta)
 	}
 }
 

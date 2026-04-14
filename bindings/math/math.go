@@ -18,15 +18,17 @@ func Register(interpreter *runtime.Interpreter) error {
 			Name:          "core.math",
 			Documentation: "Statistics, sorting, and scaling helpers for CorePy",
 			Functions: map[string]runtime.Function{
-				"mean":          mean,
-				"median":        median,
-				"variance":      variance,
-				"stdev":         stdev,
-				"sort":          sortValues,
-				"binary_search": binarySearch,
-				"epsilon_equal": epsilonEqual,
-				"normalize":     normalize,
-				"rescale":       rescale,
+				"mean":           mean,
+				"median":         median,
+				"variance":       variance,
+				"stdev":          stdev,
+				"sort":           sortValues,
+				"binary_search":  binarySearch,
+				"epsilon_equal":  epsilonEqual,
+				"normalize":      normalize,
+				"rescale":        rescale,
+				"moving_average": movingAverage,
+				"difference":     difference,
 			},
 		},
 		{
@@ -42,6 +44,14 @@ func Register(interpreter *runtime.Interpreter) error {
 			Documentation: "KNN helpers for CorePy",
 			Functions: map[string]runtime.Function{
 				"search": searchKNN,
+			},
+		},
+		{
+			Name:          "core.math.signal",
+			Documentation: "Signal-processing helpers for CorePy",
+			Functions: map[string]runtime.Function{
+				"moving_average": movingAverage,
+				"difference":     difference,
 			},
 		},
 	} {
@@ -239,6 +249,91 @@ func rescale(arguments ...any) (any, error) {
 	for _, value := range values {
 		normalized := (value - minimum) / inputScale
 		result = append(result, newMinimum+(normalized*outputScale))
+	}
+	return result, nil
+}
+
+func movingAverage(arguments ...any) (any, error) {
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	if len(positional) == 0 {
+		return nil, fmt.Errorf("core.math.moving_average expected argument 0")
+	}
+	if err := validateKeywordArguments("core.math.moving_average", keywordArguments, "window"); err != nil {
+		return nil, err
+	}
+
+	values, err := numericSliceFromValue(positional[0], "core.math.moving_average")
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return []float64{}, nil
+	}
+
+	window := 1
+	if len(positional) > 1 {
+		window, err = expectPositiveInt(positional, 1, "core.math.moving_average")
+		if err != nil {
+			return nil, err
+		}
+	}
+	window, err = keywordPositiveInt("core.math.moving_average", "window", window, keywordArguments, len(positional) > 1)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]float64, 0, len(values))
+	var total float64
+	for index, value := range values {
+		total += value
+		if index >= window {
+			total -= values[index-window]
+		}
+
+		sampleCount := index + 1
+		if sampleCount > window {
+			sampleCount = window
+		}
+		result = append(result, total/float64(sampleCount))
+	}
+	return result, nil
+}
+
+func difference(arguments ...any) (any, error) {
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	if len(positional) == 0 {
+		return nil, fmt.Errorf("core.math.difference expected argument 0")
+	}
+	if err := validateKeywordArguments("core.math.difference", keywordArguments, "lag"); err != nil {
+		return nil, err
+	}
+
+	values, err := numericSliceFromValue(positional[0], "core.math.difference")
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return []float64{}, nil
+	}
+
+	lag := 1
+	if len(positional) > 1 {
+		lag, err = expectPositiveInt(positional, 1, "core.math.difference")
+		if err != nil {
+			return nil, err
+		}
+	}
+	lag, err = keywordPositiveInt("core.math.difference", "lag", lag, keywordArguments, len(positional) > 1)
+	if err != nil {
+		return nil, err
+	}
+	if lag >= len(values) {
+		return []float64{}, nil
+	}
+
+	result := make([]float64, 0, len(values)-lag)
+	for index := lag; index < len(values); index++ {
+		result = append(result, values[index]-values[index-lag])
 	}
 	return result, nil
 }
