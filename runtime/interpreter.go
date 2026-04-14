@@ -48,6 +48,34 @@ type functionReference struct {
 	functionName string
 }
 
+type callableReference struct {
+	moduleName     string
+	functionName   string
+	boundArguments []any
+}
+
+// KeywordArguments carries Python-style `name=value` arguments for bindings that
+// opt into keyword handling.
+//
+//	bindings := runtime.KeywordArguments{"metric": "cosine", "k": 2}
+type KeywordArguments map[string]any
+
+// BoundMethod describes a method resolved from an object handle.
+//
+//	method := runtime.BoundMethod{ModuleName: "core.math.kdtree", FunctionName: "nearest", Arguments: []any{tree}}
+type BoundMethod struct {
+	ModuleName   string
+	FunctionName string
+	Arguments    []any
+}
+
+// AttributeResolver exposes Python-style attributes from a Go-backed handle.
+//
+//	attribute, ok := tree.ResolveAttribute("nearest")
+type AttributeResolver interface {
+	ResolveAttribute(name string) (any, bool)
+}
+
 // ModuleReference is an imported module handle inside the bootstrap runtime.
 //
 //	from core import fs
@@ -319,14 +347,17 @@ func (interpreter *Interpreter) evaluateExpression(expression string, namespace 
 		if err != nil {
 			return nil, err
 		}
-		return interpreter.Call(callable.moduleName, callable.functionName, arguments...)
+		callArguments := append(append([]any(nil), callable.boundArguments...), arguments...)
+		return interpreter.Call(callable.moduleName, callable.functionName, callArguments...)
 	}
 
-	value, ok := namespace[expression]
-	if !ok {
-		return nil, fmt.Errorf("unknown identifier %q", expression)
+	if value, ok := namespace[expression]; ok {
+		return value, nil
 	}
-	return value, nil
+	if strings.Contains(expression, ".") {
+		return interpreter.resolveValue(expression, namespace)
+	}
+	return nil, fmt.Errorf("unknown identifier %q", expression)
 }
 
 func (interpreter *Interpreter) evaluateListLiteral(body string, namespace map[string]any) (any, error) {
@@ -401,52 +432,94 @@ func (interpreter *Interpreter) evaluateArguments(argumentBody string, namespace
 		return nil, err
 	}
 	values := make([]any, 0, len(parts))
+	keywordArguments := KeywordArguments{}
+	seenKeywordArguments := false
 	for _, part := range parts {
+		if name, valueExpression, ok := splitKeywordArgument(part); ok {
+			if _, exists := keywordArguments[name]; exists {
+				return nil, fmt.Errorf("duplicate keyword argument %q", name)
+			}
+			value, err := interpreter.evaluateExpression(valueExpression, namespace)
+			if err != nil {
+				return nil, err
+			}
+			keywordArguments[name] = value
+			seenKeywordArguments = true
+			continue
+		}
+		if seenKeywordArguments {
+			return nil, fmt.Errorf("positional argument cannot follow keyword arguments")
+		}
 		value, err := interpreter.evaluateExpression(part, namespace)
 		if err != nil {
 			return nil, err
 		}
 		values = append(values, value)
 	}
+	if len(keywordArguments) > 0 {
+		values = append(values, keywordArguments)
+	}
 	return values, nil
 }
 
-func (interpreter *Interpreter) resolveCallable(expression string, namespace map[string]any) (functionReference, error) {
-	parts := strings.Split(expression, ".")
-	if len(parts) == 0 {
-		return functionReference{}, fmt.Errorf("call target cannot be empty")
+func (interpreter *Interpreter) resolveCallable(expression string, namespace map[string]any) (callableReference, error) {
+	value, err := interpreter.resolveValue(expression, namespace)
+	if err != nil {
+		return callableReference{}, err
+	}
+
+	switch typed := value.(type) {
+	case functionReference:
+		return callableReference{
+			moduleName:   typed.moduleName,
+			functionName: typed.functionName,
+		}, nil
+	case BoundMethod:
+		return callableReference{
+			moduleName:     typed.ModuleName,
+			functionName:   typed.FunctionName,
+			boundArguments: append([]any(nil), typed.Arguments...),
+		}, nil
+	default:
+		return callableReference{}, fmt.Errorf("%q is not callable", expression)
+	}
+}
+
+func (interpreter *Interpreter) resolveValue(expression string, namespace map[string]any) (any, error) {
+	parts := strings.Split(strings.TrimSpace(expression), ".")
+	if len(parts) == 0 || parts[0] == "" {
+		return nil, fmt.Errorf("unknown identifier %q", expression)
 	}
 
 	value, ok := namespace[parts[0]]
 	if !ok {
-		return functionReference{}, fmt.Errorf("unknown callable %q", expression)
+		return nil, fmt.Errorf("unknown identifier %q", expression)
 	}
-
 	if len(parts) == 1 {
-		callable, ok := value.(functionReference)
-		if !ok {
-			return functionReference{}, fmt.Errorf("%q is not callable", expression)
+		return value, nil
+	}
+
+	currentPath := parts[0]
+	for _, segment := range parts[1:] {
+		switch typed := value.(type) {
+		case ModuleReference:
+			nextValue, err := interpreter.resolveImport(typed.Name, segment)
+			if err != nil {
+				return nil, err
+			}
+			value = nextValue
+		case AttributeResolver:
+			nextValue, ok := typed.ResolveAttribute(segment)
+			if !ok {
+				return nil, fmt.Errorf("%q does not export %q", currentPath, segment)
+			}
+			value = nextValue
+		default:
+			return nil, fmt.Errorf("%q does not export %q", currentPath, segment)
 		}
-		return callable, nil
+		currentPath += "." + segment
 	}
-
-	moduleReference, ok := value.(ModuleReference)
-	if !ok {
-		return functionReference{}, fmt.Errorf("%q does not reference a module", parts[0])
-	}
-
-	moduleName := moduleReference.Name
-	for _, segment := range parts[1 : len(parts)-1] {
-		moduleName += "." + segment
-		if _, ok := interpreter.modules[moduleName]; !ok {
-			return functionReference{}, fmt.Errorf("module %q is not registered", moduleName)
-		}
-	}
-
-	return functionReference{
-		moduleName:   moduleName,
-		functionName: parts[len(parts)-1],
-	}, nil
+	return value, nil
 }
 
 func moduleLineage(moduleName string) []string {
@@ -480,6 +553,22 @@ func parseImportBinding(raw string) (moduleName string, bindingName string, hasA
 
 func splitArguments(argumentBody string) ([]string, error) {
 	return splitTopLevel(argumentBody, ',')
+}
+
+// SplitKeywordArguments separates positional arguments from a trailing
+// KeywordArguments payload.
+//
+//	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+func SplitKeywordArguments(arguments []any) ([]any, KeywordArguments) {
+	if len(arguments) == 0 {
+		return nil, nil
+	}
+
+	keywordArguments, ok := arguments[len(arguments)-1].(KeywordArguments)
+	if !ok {
+		return append([]any(nil), arguments...), nil
+	}
+	return append([]any(nil), arguments[:len(arguments)-1]...), keywordArguments
 }
 
 func splitTopLevel(value string, separator rune) ([]string, error) {
@@ -575,8 +664,40 @@ func topLevelIndex(value string, target rune) int {
 	return -1
 }
 
+func splitKeywordArgument(part string) (name string, value string, ok bool) {
+	index := topLevelIndex(part, '=')
+	if index == -1 {
+		return "", "", false
+	}
+
+	name = strings.TrimSpace(part[:index])
+	if !isIdentifier(name) {
+		return "", "", false
+	}
+	return name, strings.TrimSpace(part[index+1:]), true
+}
+
 func isQuoted(value string) bool {
 	return len(value) >= 2 && ((value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\''))
+}
+
+func isIdentifier(value string) bool {
+	if value == "" {
+		return false
+	}
+
+	for index, character := range value {
+		if index == 0 {
+			if (character < 'a' || character > 'z') && (character < 'A' || character > 'Z') && character != '_' {
+				return false
+			}
+			continue
+		}
+		if (character < 'a' || character > 'z') && (character < 'A' || character > 'Z') && (character < '0' || character > '9') && character != '_' {
+			return false
+		}
+	}
+	return true
 }
 
 func isOpenGrouping(character rune) bool {

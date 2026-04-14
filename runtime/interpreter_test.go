@@ -184,6 +184,65 @@ print(math.sort(values))
 	}
 }
 
+func TestInterpreter_Run_MathExample_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	script, err := os.ReadFile(filepath.Join("..", "examples", "math.py"))
+	if err != nil {
+		t.Fatalf("read math example: %v", err)
+	}
+
+	output, err := interpreter.Run(string(script))
+	if err != nil {
+		t.Fatalf("run math example: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 output lines, got %#v", lines)
+	}
+	if lines[0] != "0.5" {
+		t.Fatalf("unexpected mean output %q", lines[0])
+	}
+	if !strings.Contains(lines[1], `"index": 1`) || !strings.Contains(lines[1], `"index": 0`) {
+		t.Fatalf("unexpected nearest-neighbour output %q", lines[1])
+	}
+}
+
+func TestInterpreter_Run_RFCMathImports_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core.math import kdtree, knn, mean, stdev
+embeddings = [[1.0, 0.0], [0.0, 1.0], [0.8, 0.2]]
+tree = kdtree.build(embeddings, metric="cosine")
+print(mean([1, 2, 3]))
+print(stdev([1, 2, 3]))
+print(tree.nearest([1.0, 0.0], k=2))
+print(knn.search(embeddings, [1.0, 0.0], k=2, metric="cosine"))
+`)
+	if err != nil {
+		t.Fatalf("run RFC math imports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 output lines, got %#v", lines)
+	}
+	if lines[0] != "2" {
+		t.Fatalf("unexpected mean output %q", lines[0])
+	}
+	if !strings.HasPrefix(lines[1], "0.81649") {
+		t.Fatalf("unexpected stdev output %q", lines[1])
+	}
+	if !strings.Contains(lines[2], `"index": 0`) || !strings.Contains(lines[2], `"index": 2`) {
+		t.Fatalf("unexpected tree nearest output %q", lines[2])
+	}
+	if !strings.Contains(lines[3], `"index": 0`) || !strings.Contains(lines[3], `"index": 2`) {
+		t.Fatalf("unexpected knn output %q", lines[3])
+	}
+}
+
 func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 
@@ -283,12 +342,20 @@ func TestInterpreter_Call_MathPrimitives_Good(t *testing.T) {
 		[]any{0.0, 0.0},
 		[]any{1.0, 1.0},
 		[]any{3.0, 3.0},
-	}, "euclidean")
+	}, corepyruntime.KeywordArguments{"metric": "euclidean"})
 	if err != nil {
 		t.Fatalf("build kdtree: %v", err)
 	}
 
-	nearest, err := interpreter.Call("core.math.kdtree", "nearest", tree, []any{0.8, 0.8}, 2)
+	defaultNearest, err := interpreter.Call("core.math.kdtree", "nearest", tree, []any{0.8, 0.8})
+	if err != nil {
+		t.Fatalf("kdtree nearest default k: %v", err)
+	}
+	if len(defaultNearest.([]map[string]any)) != 1 {
+		t.Fatalf("expected default nearest search to return one neighbour, got %#v", defaultNearest)
+	}
+
+	nearest, err := interpreter.Call("core.math.kdtree", "nearest", tree, []any{0.8, 0.8}, corepyruntime.KeywordArguments{"k": 2})
 	if err != nil {
 		t.Fatalf("kdtree nearest: %v", err)
 	}
@@ -305,7 +372,7 @@ func TestInterpreter_Call_MathPrimitives_Good(t *testing.T) {
 		[]any{1.0, 0.0},
 		[]any{0.0, 1.0},
 		[]any{0.8, 0.2},
-	}, []any{1.0, 0.0}, 2, "cosine")
+	}, []any{1.0, 0.0}, corepyruntime.KeywordArguments{"k": 2, "metric": "cosine"})
 	if err != nil {
 		t.Fatalf("knn search: %v", err)
 	}

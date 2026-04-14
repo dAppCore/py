@@ -57,6 +57,30 @@ type kdTreeHandle struct {
 	metric string
 }
 
+// ResolveAttribute exposes the RFC KDTree object surface inside the bootstrap runtime.
+//
+//	method, ok := tree.ResolveAttribute("nearest")
+func (tree *kdTreeHandle) ResolveAttribute(name string) (any, bool) {
+	switch name {
+	case "nearest":
+		return runtime.BoundMethod{
+			ModuleName:   "core.math.kdtree",
+			FunctionName: "nearest",
+			Arguments:    []any{tree},
+		}, true
+	case "metric":
+		return tree.metric, true
+	case "points":
+		points := make([][]float64, 0, len(tree.points))
+		for _, point := range tree.points {
+			points = append(points, append([]float64(nil), point...))
+		}
+		return points, true
+	default:
+		return nil, false
+	}
+}
+
 type neighbor struct {
 	Index    int
 	Distance float64
@@ -220,16 +244,24 @@ func rescale(arguments ...any) (any, error) {
 }
 
 func buildKDTree(arguments ...any) (any, error) {
-	points, err := expectPointSet(arguments, 0, "core.math.kdtree.build")
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	points, err := expectPointSet(positional, 0, "core.math.kdtree.build")
 	if err != nil {
 		return nil, err
 	}
+	if err := validateKeywordArguments("core.math.kdtree.build", keywordArguments, "metric"); err != nil {
+		return nil, err
+	}
 	metric := "euclidean"
-	if len(arguments) > 1 {
-		metric, err = expectMetric(arguments[1], "core.math.kdtree.build")
+	if len(positional) > 1 {
+		metric, err = expectMetric(positional[1], "core.math.kdtree.build")
 		if err != nil {
 			return nil, err
 		}
+	}
+	metric, err = keywordMetric("core.math.kdtree.build", metric, keywordArguments, len(positional) > 1)
+	if err != nil {
+		return nil, err
 	}
 	return &kdTreeHandle{
 		points: points,
@@ -238,19 +270,30 @@ func buildKDTree(arguments ...any) (any, error) {
 }
 
 func nearestKDTree(arguments ...any) (any, error) {
-	if len(arguments) == 0 {
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	if len(positional) == 0 {
 		return nil, fmt.Errorf("core.math.kdtree.nearest expected argument 0")
 	}
-
-	tree, ok := arguments[0].(*kdTreeHandle)
-	if !ok {
-		return nil, fmt.Errorf("core.math.kdtree.nearest expected KDTree handle, got %T", arguments[0])
+	if err := validateKeywordArguments("core.math.kdtree.nearest", keywordArguments, "k"); err != nil {
+		return nil, err
 	}
-	query, err := expectPoint(arguments, 1, "core.math.kdtree.nearest")
+
+	tree, ok := positional[0].(*kdTreeHandle)
+	if !ok {
+		return nil, fmt.Errorf("core.math.kdtree.nearest expected KDTree handle, got %T", positional[0])
+	}
+	query, err := expectPoint(positional, 1, "core.math.kdtree.nearest")
 	if err != nil {
 		return nil, err
 	}
-	k, err := expectPositiveInt(arguments, 2, "core.math.kdtree.nearest")
+	k := 1
+	if len(positional) > 2 {
+		k, err = expectPositiveInt(positional, 2, "core.math.kdtree.nearest")
+		if err != nil {
+			return nil, err
+		}
+	}
+	k, err = keywordPositiveInt("core.math.kdtree.nearest", "k", k, keywordArguments, len(positional) > 2)
 	if err != nil {
 		return nil, err
 	}
@@ -259,25 +302,40 @@ func nearestKDTree(arguments ...any) (any, error) {
 }
 
 func searchKNN(arguments ...any) (any, error) {
-	points, err := expectPointSet(arguments, 0, "core.math.knn.search")
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	points, err := expectPointSet(positional, 0, "core.math.knn.search")
 	if err != nil {
 		return nil, err
 	}
-	query, err := expectPoint(arguments, 1, "core.math.knn.search")
+	if err := validateKeywordArguments("core.math.knn.search", keywordArguments, "k", "metric"); err != nil {
+		return nil, err
+	}
+	query, err := expectPoint(positional, 1, "core.math.knn.search")
 	if err != nil {
 		return nil, err
 	}
-	k, err := expectPositiveInt(arguments, 2, "core.math.knn.search")
+	k := 1
+	if len(positional) > 2 {
+		k, err = expectPositiveInt(positional, 2, "core.math.knn.search")
+		if err != nil {
+			return nil, err
+		}
+	}
+	k, err = keywordPositiveInt("core.math.knn.search", "k", k, keywordArguments, len(positional) > 2)
 	if err != nil {
 		return nil, err
 	}
 
 	metric := "euclidean"
-	if len(arguments) > 3 {
-		metric, err = expectMetric(arguments[3], "core.math.knn.search")
+	if len(positional) > 3 {
+		metric, err = expectMetric(positional[3], "core.math.knn.search")
 		if err != nil {
 			return nil, err
 		}
+	}
+	metric, err = keywordMetric("core.math.knn.search", metric, keywordArguments, len(positional) > 3)
+	if err != nil {
+		return nil, err
 	}
 	return searchPoints(points, query, k, metric)
 }
@@ -637,4 +695,70 @@ func maybeFloat(value any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func keywordMetric(functionName string, current string, keywordArguments runtime.KeywordArguments, alreadySet bool) (string, error) {
+	if len(keywordArguments) == 0 {
+		return current, nil
+	}
+
+	metricValue, ok := keywordArguments["metric"]
+	if !ok {
+		return current, nil
+	}
+	if alreadySet {
+		return "", fmt.Errorf("%s received multiple values for metric", functionName)
+	}
+	return expectMetric(metricValue, functionName)
+}
+
+func keywordPositiveInt(functionName, name string, current int, keywordArguments runtime.KeywordArguments, alreadySet bool) (int, error) {
+	if len(keywordArguments) == 0 {
+		return current, nil
+	}
+
+	value, ok := keywordArguments[name]
+	if !ok {
+		return current, nil
+	}
+	if alreadySet {
+		return 0, fmt.Errorf("%s received multiple values for %s", functionName, name)
+	}
+	switch typed := value.(type) {
+	case int:
+		if typed <= 0 {
+			return 0, fmt.Errorf("%s expected positive integer, got %d", functionName, typed)
+		}
+		return typed, nil
+	default:
+		return 0, fmt.Errorf("%s expected positive integer, got %T", functionName, value)
+	}
+}
+
+func validateKeywordArguments(functionName string, keywordArguments runtime.KeywordArguments, allowed ...string) error {
+	if len(keywordArguments) == 0 {
+		return nil
+	}
+
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, name := range allowed {
+		allowedSet[name] = struct{}{}
+	}
+
+	var unexpected []string
+	for name := range keywordArguments {
+		if _, ok := allowedSet[name]; ok {
+			continue
+		}
+		unexpected = append(unexpected, name)
+	}
+	if len(unexpected) == 0 {
+		return nil
+	}
+
+	sort.Strings(unexpected)
+	if len(unexpected) == 1 {
+		return fmt.Errorf("%s got unexpected keyword argument %q", functionName, unexpected[0])
+	}
+	return fmt.Errorf("%s got unexpected keyword arguments %s", functionName, strings.Join(unexpected, ", "))
 }
