@@ -81,6 +81,32 @@ print(json.dumps(json.loads(data)))
 	}
 }
 
+func TestInterpreter_Run_ImportModuleForms_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	filename := filepath.Join(t.TempDir(), "sample.txt")
+	if err := os.WriteFile(filename, []byte("hello"), 0600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	script := fmt.Sprintf(`
+import core
+import core.fs as filesystem
+print(core.echo("hello"))
+print(filesystem.read_file(%q))
+`, filename)
+
+	output, err := interpreter.Run(script)
+	if err != nil {
+		t.Fatalf("run script: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if !reflect.DeepEqual(lines, []string{"hello", "hello"}) {
+		t.Fatalf("unexpected output lines %#v", lines)
+	}
+}
+
 func TestInterpreter_Run_MediumImport_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 

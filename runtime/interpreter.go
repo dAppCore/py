@@ -139,6 +139,8 @@ func (interpreter *Interpreter) Call(moduleName, functionName string, arguments 
 // Run executes a small Python subset used by the bootstrap integration tests.
 //
 // Supported statements:
+// - `import core`
+// - `import core.fs as filesystem`
 // - `from core import echo, fs`
 // - `name = expression`
 // - `print(expression)`
@@ -158,6 +160,10 @@ func (interpreter *Interpreter) Run(script string) (string, error) {
 		}
 
 		switch {
+		case strings.HasPrefix(line, "import "):
+			if err := interpreter.executeDirectImport(line, namespace); err != nil {
+				return "", fmt.Errorf("runtime.Run line %d: %w", lineNumber+1, err)
+			}
 		case strings.HasPrefix(line, "from "):
 			if err := interpreter.executeImport(line, namespace); err != nil {
 				return "", fmt.Errorf("runtime.Run line %d: %w", lineNumber+1, err)
@@ -196,6 +202,32 @@ func (interpreter *Interpreter) Run(script string) (string, error) {
 	return interpreter.output.String(), nil
 }
 
+func (interpreter *Interpreter) executeDirectImport(line string, namespace map[string]any) error {
+	body := strings.TrimSpace(strings.TrimPrefix(line, "import "))
+	if body == "" {
+		return fmt.Errorf("import module cannot be empty")
+	}
+
+	for _, rawTarget := range strings.Split(body, ",") {
+		moduleName, bindingName, hasAlias, err := parseImportBinding(rawTarget)
+		if err != nil {
+			return err
+		}
+		if _, ok := interpreter.modules[moduleName]; !ok {
+			return fmt.Errorf("module %q is not registered", moduleName)
+		}
+
+		if hasAlias {
+			namespace[bindingName] = ModuleReference{Name: moduleName}
+			continue
+		}
+
+		rootName := strings.Split(moduleName, ".")[0]
+		namespace[rootName] = ModuleReference{Name: rootName}
+	}
+	return nil
+}
+
 func (interpreter *Interpreter) executeImport(line string, namespace map[string]any) error {
 	body := strings.TrimSpace(strings.TrimPrefix(line, "from "))
 	parts := strings.SplitN(body, " import ", 2)
@@ -212,15 +244,15 @@ func (interpreter *Interpreter) executeImport(line string, namespace map[string]
 	}
 
 	for _, rawName := range strings.Split(parts[1], ",") {
-		name := strings.TrimSpace(rawName)
-		if name == "" {
-			return fmt.Errorf("import name cannot be empty")
+		name, bindingName, _, err := parseImportBinding(rawName)
+		if err != nil {
+			return err
 		}
 		exported, err := interpreter.resolveImport(moduleName, name)
 		if err != nil {
 			return err
 		}
-		namespace[name] = exported
+		namespace[bindingName] = exported
 	}
 	return nil
 }
@@ -355,6 +387,26 @@ func moduleLineage(moduleName string) []string {
 		names = append(names, strings.Join(parts[:index+1], "."))
 	}
 	return names
+}
+
+func parseImportBinding(raw string) (moduleName string, bindingName string, hasAlias bool, err error) {
+	fields := strings.Fields(strings.TrimSpace(raw))
+	switch len(fields) {
+	case 0:
+		return "", "", false, fmt.Errorf("import name cannot be empty")
+	case 1:
+		return fields[0], fields[0], false, nil
+	case 3:
+		if fields[1] != "as" {
+			return "", "", false, fmt.Errorf("invalid import syntax: %q", raw)
+		}
+		if fields[0] == "" || fields[2] == "" {
+			return "", "", false, fmt.Errorf("invalid import syntax: %q", raw)
+		}
+		return fields[0], fields[2], true, nil
+	default:
+		return "", "", false, fmt.Errorf("invalid import syntax: %q", raw)
+	}
 }
 
 func splitArguments(argumentBody string) ([]string, error) {

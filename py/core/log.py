@@ -13,6 +13,15 @@ from typing import Any
 
 
 _LOGGER = logging.getLogger("core")
+_QUIET_LEVEL = logging.CRITICAL + 10
+_LEVELS = {
+    "quiet": _QUIET_LEVEL,
+    "error": logging.ERROR,
+    "warn": logging.WARNING,
+    "info": logging.INFO,
+    "debug": logging.DEBUG,
+}
+
 if not _LOGGER.handlers:
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
@@ -28,7 +37,10 @@ def set_level(level: str | int) -> None:
     """
 
     if isinstance(level, str):
-        _LOGGER.setLevel(getattr(logging, level.upper(), logging.INFO))
+        level_value = _LEVELS.get(level.lower())
+        if level_value is None:
+            raise ValueError(f"unknown log level: {level}")
+        _LOGGER.setLevel(level_value)
         return
     _LOGGER.setLevel(level)
 

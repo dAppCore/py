@@ -59,7 +59,7 @@ class CorePyTests(unittest.TestCase):
 
         registry = service.new("corepy")
         service.register(registry, "brain")
-        self.assertEqual(service.names(registry), ["brain"])
+        self.assertEqual(service.names(registry), ["cli", "brain"])
 
     def test_data_and_service_registry(self) -> None:
         assets = data.Data()
@@ -67,13 +67,19 @@ class CorePyTests(unittest.TestCase):
             fixture_directory = Path(directory_name) / "fixtures"
             fixture_directory.mkdir()
             (fixture_directory / "note.txt").write_text("hello from data", encoding="utf-8")
+            template_directory = fixture_directory / "templates"
+            template_directory.mkdir()
+            (template_directory / "greeting-{{.Name}}.txt.tmpl").write_text("hello {{.Name}}", encoding="utf-8")
             assets.mount("fixtures", fixture_directory)
             self.assertEqual(assets.read_string("fixtures/note.txt"), "hello from data")
-            self.assertEqual(assets.list_names("fixtures"), ["note"])
+            self.assertEqual(assets.list_names("fixtures"), ["note", "templates"])
+            workspace = Path(directory_name) / "workspace"
+            self.assertEqual(assets.extract("fixtures/templates", workspace, {"Name": "corepy"}), str(workspace.resolve()))
+            self.assertEqual((workspace / "greeting-corepy.txt").read_text(encoding="utf-8"), "hello corepy")
 
         registry = service.ServiceRegistry()
         registry.register("brain", service.Service(name="brain"))
-        self.assertEqual(registry.names(), ["brain"])
+        self.assertEqual(registry.names(), ["cli", "brain"])
 
     def test_medium_process_log_and_errors(self) -> None:
         buffer = medium.memory("hello")
@@ -85,18 +91,24 @@ class CorePyTests(unittest.TestCase):
 
         output = process.run(sys.executable, "-c", "print('ok')")
         self.assertEqual(output.strip(), "ok")
+        env_output = process.run_with_env(Path.cwd(), ["COREPY_MODE=test"], sys.executable, "-c", "import os; print(os.environ['COREPY_MODE'])")
+        self.assertEqual(env_output.strip(), "test")
         self.assertTrue(process.exists())
 
-        issue = err.e("core.test", "boom")
-        wrapped = err.wrap(issue, "core.outer", "outer boom")
+        issue = err.e("core.test", "boom", None, "BOOM")
+        wrapped = err.wrap(issue, "core.outer", "outer boom", "OUTER")
         self.assertIsNotNone(wrapped)
         assert wrapped is not None
         self.assertEqual(err.operation(wrapped), "core.outer")
+        self.assertEqual(err.error_code(wrapped), "OUTER")
         self.assertEqual(err.message(wrapped), "outer boom")
-        self.assertEqual(str(wrapped), "core.outer: outer boom: core.test: boom")
+        self.assertEqual(str(wrapped), "core.outer: outer boom [OUTER]: core.test: boom [BOOM]")
 
         log.set_level("debug")
         log.info("corepy test", "module", "core")
+        log.set_level("quiet")
+        with self.assertRaises(ValueError):
+            log.set_level("verbose")
 
     def test_path_and_strings_helpers(self) -> None:
         self.assertEqual(path.join("deploy", "to", "homelab"), "deploy/to/homelab")

@@ -33,7 +33,7 @@ class ServiceRegistry:
     """
 
     def __init__(self) -> None:
-        self._services: dict[str, Service] = {}
+        self._services: dict[str, Service] = {"cli": Service(name="cli")}
 
     def register(self, name: str, service_value: Service | Any) -> None:
         """Register a service by name.

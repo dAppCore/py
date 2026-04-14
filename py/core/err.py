@@ -34,7 +34,7 @@ class CoreError(Exception):
         return f"{prefix}{self.message} [{self.code}]: {self.cause}"
 
 
-def e(operation: str, message: str, cause: BaseException | None = None, *, code: str = "") -> CoreError:
+def e(operation: str, message: str, cause: BaseException | None = None, code: str = "") -> CoreError:
     """Create a structured error.
 
     err.e("core.save", "write failed")
@@ -43,7 +43,7 @@ def e(operation: str, message: str, cause: BaseException | None = None, *, code:
     return CoreError(operation=operation, message=message, cause=cause, code=code)
 
 
-def wrap(cause: BaseException | None, operation: str, message: str, *, code: str = "") -> CoreError | None:
+def wrap(cause: BaseException | None, operation: str, message: str, code: str = "") -> CoreError | None:
     """Wrap an existing error with operation context.
 
     err.wrap(issue, "core.deploy", "deploy failed")

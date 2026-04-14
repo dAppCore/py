@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import builtins
 from pathlib import Path
+import re
 import shutil
 from typing import Any, Mapping
 
 
-class _TemplateValues(dict[str, Any]):
-    def __missing__(self, key: str) -> str:
-        return "{" + key + "}"
+_GO_TEMPLATE_PATTERN = re.compile(r"\{\{\s*\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
 
 
 class Data:
@@ -78,22 +77,23 @@ class Data:
     def extract(self, path: str, target_dir: str | Path, template_data: Mapping[str, Any] | None = None) -> str:
         """Copy a mounted directory into a target directory.
 
-        assets.extract("fixtures/templates", "/tmp/corepy-workspace", {"name": "corepy"})
+        assets.extract("fixtures/templates", "/tmp/corepy-workspace", {"Name": "corepy"})
         """
 
         source_directory = self._resolve(path)
-        target_directory = Path(target_dir)
+        target_directory = Path(target_dir).expanduser().resolve()
         target_directory.mkdir(parents=True, exist_ok=True)
 
-        for source_path in source_directory.rglob("*"):
+        for source_path in sorted(source_directory.rglob("*")):
             relative_path = source_path.relative_to(source_directory)
-            destination_path = target_directory / relative_path
+            rendered_relative = _render_go_template(relative_path.as_posix(), template_data)
+            destination_path = _safe_destination(target_directory, _strip_template_filter(source_path, rendered_relative))
             if source_path.is_dir():
                 destination_path.mkdir(parents=True, exist_ok=True)
                 continue
 
             destination_path.parent.mkdir(parents=True, exist_ok=True)
-            if template_data is None:
+            if not _is_template_file(source_path):
                 shutil.copy2(source_path, destination_path)
                 continue
 
@@ -102,7 +102,7 @@ class Data:
             except UnicodeDecodeError:
                 shutil.copy2(source_path, destination_path)
                 continue
-            destination_path.write_text(text.format_map(_TemplateValues(template_data)), encoding="utf-8")
+            destination_path.write_text(_render_go_template(text, template_data), encoding="utf-8")
 
         return str(target_directory)
 
@@ -189,7 +189,7 @@ def list_names(data_value: Data, path: str) -> list[str]:
 def extract(data_value: Data, path: str, target_dir: str | Path, template_data: Mapping[str, Any] | None = None) -> str:
     """Extract mounted content from a Data handle.
 
-    data.extract(assets, "fixtures/templates", "/tmp/corepy-workspace", {"name": "corepy"})
+    data.extract(assets, "fixtures/templates", "/tmp/corepy-workspace", {"Name": "corepy"})
     """
 
     return data_value.extract(path, target_dir, template_data)
@@ -202,3 +202,34 @@ def mounts(data_value: Data) -> list[str]:
     """
 
     return data_value.mounts()
+
+
+def _is_template_file(path: Path) -> bool:
+    return ".tmpl" in path.name
+
+
+def _strip_template_filter(source_path: Path, rendered_relative: str) -> Path:
+    relative = Path(rendered_relative)
+    if not _is_template_file(source_path):
+        return relative
+    return relative.with_name(relative.name.replace(".tmpl", ""))
+
+
+def _render_go_template(value: str, template_data: Mapping[str, Any] | None) -> str:
+    if template_data is None:
+        return value
+
+    def replace(match: re.Match[str]) -> str:
+        key = match.group(1)
+        if key not in template_data:
+            return match.group(0)
+        return str(template_data[key])
+
+    return _GO_TEMPLATE_PATTERN.sub(replace, value)
+
+
+def _safe_destination(target_root: Path, relative_path: Path) -> Path:
+    destination = (target_root / relative_path).resolve()
+    if destination != target_root and target_root not in destination.parents:
+        raise ValueError(f"extracted path escapes target directory: {relative_path}")
+    return destination
