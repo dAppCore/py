@@ -9,6 +9,7 @@ text = assets.read_string("fixtures/example.txt")
 
 from __future__ import annotations
 
+import builtins
 from pathlib import Path
 import shutil
 from typing import Any, Mapping
@@ -111,7 +112,7 @@ class Data:
         assets.mounts()
         """
 
-        return list(self._mounts.keys())
+        return builtins.list(self._mounts.keys())
 
     def _resolve(self, logical_path: str) -> Path:
         mount_name, _, relative_path = logical_path.partition("/")
@@ -119,3 +120,85 @@ class Data:
             raise KeyError(f"mount not found: {mount_name}")
         root = self._mounts[mount_name]
         return root if relative_path == "" else root / relative_path
+
+
+def new() -> Data:
+    """Create a Data handle.
+
+    data.new()
+    """
+
+    return Data()
+
+
+def mount(data_value: Data, name: str, source: str | Path, path: str = ".") -> Data:
+    """Mount a directory onto a Data handle and return it.
+
+    data.mount(assets, "fixtures", "/tmp/corepy-fixtures")
+    """
+
+    data_value.mount(name, source, path)
+    return data_value
+
+
+def mount_path(data_value: Data, name: str, source: str | Path, path: str = ".") -> Data:
+    """Mount a directory onto a Data handle using the Go binding name.
+
+    data.mount_path(assets, "fixtures", "/tmp/corepy-fixtures")
+    """
+
+    return mount(data_value, name, source, path)
+
+
+def read_file(data_value: Data, path: str) -> bytes:
+    """Read file bytes from a Data handle.
+
+    data.read_file(assets, "fixtures/example.txt")
+    """
+
+    return data_value.read_file(path)
+
+
+def read_string(data_value: Data, path: str) -> str:
+    """Read text from a Data handle.
+
+    data.read_string(assets, "fixtures/example.txt")
+    """
+
+    return data_value.read_string(path)
+
+
+def list(data_value: Data, path: str) -> list[str]:
+    """List child names from a Data handle.
+
+    data.list(assets, "fixtures")
+    """
+
+    return data_value.list(path)
+
+
+def list_names(data_value: Data, path: str) -> list[str]:
+    """List child stems from a Data handle.
+
+    data.list_names(assets, "fixtures")
+    """
+
+    return data_value.list_names(path)
+
+
+def extract(data_value: Data, path: str, target_dir: str | Path, template_data: Mapping[str, Any] | None = None) -> str:
+    """Extract mounted content from a Data handle.
+
+    data.extract(assets, "fixtures/templates", "/tmp/corepy-workspace", {"name": "corepy"})
+    """
+
+    return data_value.extract(path, target_dir, template_data)
+
+
+def mounts(data_value: Data) -> list[str]:
+    """Return mounted names from a Data handle.
+
+    data.mounts(assets)
+    """
+
+    return data_value.mounts()

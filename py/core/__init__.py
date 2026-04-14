@@ -2,12 +2,12 @@
 
 Use the same import paths across Tier 1 and Tier 2:
 
-    from core import echo, fs, json, options
+    from core import echo, fs, json, options, path, strings
     print(echo("hello"))
     fs.write_file("/tmp/corepy.json", json.dumps({"name": "corepy"}))
 """
 
-from . import config, data, err, fs, json, log, medium, options, process, service
+from . import config, data, err, fs, json, log, medium, options, path, process, service, strings
 
 __version__ = "0.2.0"
 
@@ -31,6 +31,8 @@ __all__ = [
     "log",
     "medium",
     "options",
+    "path",
     "process",
     "service",
+    "strings",
 ]

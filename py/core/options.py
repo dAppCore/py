@@ -8,6 +8,7 @@ opts.set("debug", True)
 
 from __future__ import annotations
 
+import builtins
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
@@ -80,7 +81,7 @@ class Options:
         """
 
         value = self.get(key, 0)
-        return value if isinstance(value, int) and not isinstance(value, bool) else 0
+        return value if isinstance(value, builtins.int) and not isinstance(value, builtins.bool) else 0
 
     def bool(self, key: str) -> bool:
         """Return a boolean value or False.
@@ -89,7 +90,7 @@ class Options:
         """
 
         value = self.get(key, False)
-        return value if isinstance(value, bool) else False
+        return value if isinstance(value, builtins.bool) else False
 
     def items(self) -> list[Option]:
         """Return the option items in insertion order.
@@ -112,3 +113,83 @@ class Options:
 
     def __contains__(self, key: str) -> bool:
         return self.has(key)
+
+
+def _coerce(value: Options | Mapping[str, Any]) -> Options:
+    if isinstance(value, Options):
+        return value
+    return Options(value)
+
+
+def new(values: Mapping[str, Any] | Iterable[Option] | None = None) -> Options:
+    """Create an Options handle.
+
+    options.new({"name": "corepy"})
+    """
+
+    return Options(values)
+
+
+def set(options_value: Options | Mapping[str, Any], key: str, value: Any) -> Options:
+    """Set an option on a handle and return it.
+
+    options.set(opts, "port", 8080)
+    """
+
+    handle = _coerce(options_value)
+    handle.set(key, value)
+    return handle
+
+
+def get(options_value: Options | Mapping[str, Any], key: str) -> Any:
+    """Read an option value from a handle.
+
+    options.get(opts, "name")
+    """
+
+    return _coerce(options_value).get(key)
+
+
+def has(options_value: Options | Mapping[str, Any], key: str) -> bool:
+    """Return True when an option exists on a handle.
+
+    options.has(opts, "debug")
+    """
+
+    return _coerce(options_value).has(key)
+
+
+def string(options_value: Options | Mapping[str, Any], key: str) -> str:
+    """Read a string option from a handle.
+
+    options.string(opts, "name")
+    """
+
+    return _coerce(options_value).string(key)
+
+
+def int(options_value: Options | Mapping[str, Any], key: str) -> builtins.int:
+    """Read an integer option from a handle.
+
+    options.int(opts, "port")
+    """
+
+    return _coerce(options_value).int(key)
+
+
+def bool(options_value: Options | Mapping[str, Any], key: str) -> builtins.bool:
+    """Read a boolean option from a handle.
+
+    options.bool(opts, "debug")
+    """
+
+    return _coerce(options_value).bool(key)
+
+
+def items(options_value: Options | Mapping[str, Any]) -> dict[str, Any]:
+    """Return a plain dictionary copy of the option items.
+
+    options.items(opts)
+    """
+
+    return _coerce(options_value).to_dict()

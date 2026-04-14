@@ -58,3 +58,12 @@ def run_with_env(directory: str | Path, env: Mapping[str, str], command: str, *a
     """
 
     return run(command, *arguments, directory=directory, env=env, check=check)
+
+
+def exists() -> bool:
+    """Return True when subprocess execution is available.
+
+    process.exists()
+    """
+
+    return True

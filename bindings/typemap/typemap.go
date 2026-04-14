@@ -37,6 +37,20 @@ func ExpectString(arguments []any, index int, functionName string) (string, erro
 	return value, nil
 }
 
+// ExpectInt returns the int argument at the given index.
+//
+//	limit, err := typemap.ExpectInt(arguments, 2, "core.strings.split_n")
+func ExpectInt(arguments []any, index int, functionName string) (int, error) {
+	if index >= len(arguments) {
+		return 0, fmt.Errorf("%s expected argument %d", functionName, index)
+	}
+	value, ok := arguments[index].(int)
+	if !ok {
+		return 0, fmt.Errorf("%s expected argument %d to be int, got %T", functionName, index, arguments[index])
+	}
+	return value, nil
+}
+
 // ExpectBytes returns a byte slice argument at the given index.
 //
 //	content, err := typemap.ExpectBytes(arguments, 1, "core.fs.write_bytes")

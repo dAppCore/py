@@ -10,10 +10,11 @@ different syntax surface.
   module contract and import shape without waiting on the gpython dependency.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
-  `core.process`, `core.config`, `core.data`, `core.service`, `core.log`,
-  and `core.err`.
+  `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
+  `core.log`, `core.err`, and `core.strings`.
 - `py/core/` contains the Python package surface for the RFC v1 modules,
-  including docstrings and concrete fallbacks for CPython validation.
+  including docstrings, concrete fallbacks for CPython validation, and
+  module-level helpers that mirror the Tier 1 binding shape.
 
 ## Validation
 

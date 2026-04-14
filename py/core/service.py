@@ -88,3 +88,61 @@ class ServiceRegistry:
             if service_object.on_stop is not None:
                 results.append(service_object.on_stop())
         return results
+
+
+def new(name: str = "") -> ServiceRegistry:
+    """Create a service registry handle.
+
+    service.new("corepy")
+    """
+
+    _ = name
+    return ServiceRegistry()
+
+
+def register(registry: ServiceRegistry, name: str, service_value: Service | Any | None = None) -> ServiceRegistry:
+    """Register a service on a handle and return it.
+
+    service.register(registry, "brain")
+    """
+
+    registry.register(name, Service(name=name) if service_value is None else service_value)
+    return registry
+
+
+def get(registry: ServiceRegistry, name: str) -> Any:
+    """Read a service from a handle.
+
+    service.get(registry, "brain")
+    """
+
+    return registry.get(name)
+
+
+def names(registry: ServiceRegistry) -> list[str]:
+    """Return service names from a handle.
+
+    service.names(registry)
+    """
+
+    return registry.names()
+
+
+def start_all(registry: ServiceRegistry) -> bool:
+    """Run startup hooks for a handle.
+
+    service.start_all(registry)
+    """
+
+    registry.start_all()
+    return True
+
+
+def stop_all(registry: ServiceRegistry) -> bool:
+    """Run shutdown hooks for a handle.
+
+    service.stop_all(registry)
+    """
+
+    registry.stop_all()
+    return True

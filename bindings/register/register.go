@@ -10,8 +10,10 @@ import (
 	"dappco.re/go/py/bindings/log"
 	"dappco.re/go/py/bindings/medium"
 	"dappco.re/go/py/bindings/options"
+	pathbinding "dappco.re/go/py/bindings/path"
 	"dappco.re/go/py/bindings/process"
 	"dappco.re/go/py/bindings/service"
+	stringsbinding "dappco.re/go/py/bindings/strings"
 	"dappco.re/go/py/runtime"
 )
 
@@ -25,12 +27,14 @@ func DefaultModules(interpreter *runtime.Interpreter) error {
 		json.Register,
 		medium.Register,
 		options.Register,
+		pathbinding.Register,
 		process.Register,
 		config.Register,
 		data.Register,
 		service.Register,
 		log.Register,
 		err.Register,
+		stringsbinding.Register,
 	} {
 		if err := registerModule(interpreter); err != nil {
 			return err

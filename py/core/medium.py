@@ -95,3 +95,39 @@ def from_path(path: str | Path) -> Medium:
     """
 
     return Medium(location=path)
+
+
+def read_text(medium_value: Medium) -> str:
+    """Read text from a medium handle.
+
+    medium.read_text(buffer)
+    """
+
+    return medium_value.read_text()
+
+
+def write_text(medium_value: Medium, value: str) -> str:
+    """Write text to a medium handle.
+
+    medium.write_text(buffer, "updated")
+    """
+
+    return medium_value.write_text(value)
+
+
+def read_bytes(medium_value: Medium) -> bytes:
+    """Read bytes from a medium handle.
+
+    medium.read_bytes(buffer)
+    """
+
+    return medium_value.read_bytes()
+
+
+def write_bytes(medium_value: Medium, value: bytes) -> bytes:
+    """Write bytes to a medium handle.
+
+    medium.write_bytes(buffer, b"updated")
+    """
+
+    return medium_value.write_bytes(value)

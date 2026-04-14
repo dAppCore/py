@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	goruntime "runtime"
 	"strings"
 	"testing"
@@ -115,6 +116,22 @@ print(process.run(%q, "env", "GOOS"))
 		t.Fatalf("run script: %v", err)
 	}
 	if strings.TrimSpace(output) != goruntime.GOOS {
+		t.Fatalf("unexpected output %q", output)
+	}
+}
+
+func TestInterpreter_Run_PathAndStringsImport_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import path, strings
+location = path.join("deploy", "to", "homelab")
+print(strings.concat(location, ":", path.base(location)))
+`)
+	if err != nil {
+		t.Fatalf("run script: %v", err)
+	}
+	if strings.TrimSpace(output) != "deploy/to/homelab:homelab" {
 		t.Fatalf("unexpected output %q", output)
 	}
 }
@@ -405,5 +422,49 @@ func TestInterpreter_Call_ErrorHelpers_Good(t *testing.T) {
 	}
 	if nilWrapped != nil {
 		t.Fatalf("expected nil wrapped error, got %#v", nilWrapped)
+	}
+}
+
+func TestInterpreter_Call_PathAndStringHelpers_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	joined, err := interpreter.Call("core.path", "join", "deploy", "to", "homelab")
+	if err != nil {
+		t.Fatalf("path join: %v", err)
+	}
+	if joined != "deploy/to/homelab" {
+		t.Fatalf("unexpected joined path %#v", joined)
+	}
+
+	baseName, err := interpreter.Call("core.path", "base", "/tmp/corepy/config.json")
+	if err != nil {
+		t.Fatalf("path base: %v", err)
+	}
+	if baseName != "config.json" {
+		t.Fatalf("unexpected base name %#v", baseName)
+	}
+
+	cleaned, err := interpreter.Call("core.path", "clean", "deploy//to/../from")
+	if err != nil {
+		t.Fatalf("path clean: %v", err)
+	}
+	if cleaned != "deploy/from" {
+		t.Fatalf("unexpected cleaned path %#v", cleaned)
+	}
+
+	contains, err := interpreter.Call("core.strings", "contains", "hello world", "world")
+	if err != nil {
+		t.Fatalf("strings contains: %v", err)
+	}
+	if contains != true {
+		t.Fatalf("expected contains to be true, got %#v", contains)
+	}
+
+	parts, err := interpreter.Call("core.strings", "split_n", "key=value=extra", "=", 2)
+	if err != nil {
+		t.Fatalf("strings split_n: %v", err)
+	}
+	if !reflect.DeepEqual(parts, []string{"key", "value=extra"}) {
+		t.Fatalf("unexpected split parts %#v", parts)
 	}
 }
