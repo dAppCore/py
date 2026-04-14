@@ -1,8 +1,36 @@
 """core — Python binding for Core primitives.
 
-Same primitives as Go's `core/go`, same shape, different syntax surface.
+Use the same import paths across Tier 1 and Tier 2:
 
-See plans/code/core/py/RFC.md for the full contract.
+    from core import echo, fs, json, options
+    print(echo("hello"))
+    fs.write_file("/tmp/corepy.json", json.dumps({"name": "corepy"}))
 """
 
-__version__ = "0.1.0"
+from . import config, data, err, fs, json, log, medium, options, process, service
+
+__version__ = "0.2.0"
+
+
+def echo(value: str) -> str:
+    """Return the value unchanged.
+
+    echo("hello")
+    """
+
+    return value
+
+
+__all__ = [
+    "config",
+    "data",
+    "echo",
+    "err",
+    "fs",
+    "json",
+    "log",
+    "medium",
+    "options",
+    "process",
+    "service",
+]

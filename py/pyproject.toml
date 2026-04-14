@@ -1,9 +1,9 @@
 [project]
 name = "core"
-version = "0.1.0"
-description = "Python binding for Core primitives — gpython-embedded (Tier 1) or CPython-via-uv (Tier 2)"
+version = "0.2.0"
+description = "Python binding for Core primitives — bootstrap Tier 1 runtime plus CPython package surface"
 license = { text = "EUPL-1.2" }
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 authors = [
     { name = "Lethean CIC" }
 ]
