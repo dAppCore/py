@@ -10,6 +10,7 @@ cfg.enable("debug")
 from __future__ import annotations
 
 import builtins
+import os
 from typing import Any
 
 
@@ -37,7 +38,12 @@ class Config:
         cfg.get("database.host")
         """
 
-        return self._settings.get(key, default)
+        if key in self._settings:
+            return self._settings[key]
+        value = _env_value(key)
+        if value is not None:
+            return value
+        return default
 
     def string(self, key: str) -> str:
         """Read a string setting or an empty string.
@@ -45,7 +51,10 @@ class Config:
         cfg.string("database.host")
         """
 
-        value = self.get(key, "")
+        if key in self._settings:
+            value = self._settings[key]
+        else:
+            value = _env_value(key, "")
         return value if isinstance(value, str) else ""
 
     def int(self, key: str) -> int:
@@ -54,8 +63,17 @@ class Config:
         cfg.int("port")
         """
 
-        value = self.get(key, 0)
-        return value if isinstance(value, builtins.int) and not isinstance(value, builtins.bool) else 0
+        if key in self._settings:
+            value = self._settings[key]
+            return value if isinstance(value, builtins.int) and not isinstance(value, builtins.bool) else 0
+
+        value = _env_value(key)
+        if value is None:
+            return 0
+        try:
+            return builtins.int(value)
+        except (TypeError, ValueError):
+            return 0
 
     def bool(self, key: str) -> bool:
         """Read a boolean setting or False.
@@ -63,8 +81,14 @@ class Config:
         cfg.bool("debug")
         """
 
-        value = self.get(key, False)
-        return value if isinstance(value, builtins.bool) else False
+        if key in self._settings:
+            value = self._settings[key]
+            return value if isinstance(value, builtins.bool) else False
+
+        value = _env_value(key)
+        if value is None:
+            return False
+        return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
 
     def enable(self, feature: str) -> None:
         """Enable a feature flag.
@@ -190,3 +214,18 @@ def enabled_features(config_value: Config) -> list[str]:
     """
 
     return config_value.enabled_features()
+
+
+def _env_value(key: str, default: Any = None) -> Any:
+    return os.environ.get(_env_key(key), default)
+
+
+def _env_key(key: str) -> str:
+    return (
+        key.strip()
+        .replace(".", "_")
+        .replace("-", "_")
+        .replace("/", "_")
+        .replace(" ", "_")
+        .upper()
+    )

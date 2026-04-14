@@ -1,6 +1,10 @@
 package config
 
 import (
+	"os"
+	"strconv"
+	"strings"
+
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
@@ -58,10 +62,13 @@ func getValue(arguments ...any) (any, error) {
 		return nil, err
 	}
 	result := config.Get(key)
-	if !result.OK {
-		return nil, nil
+	if result.OK {
+		return result.Value, nil
 	}
-	return result.Value, nil
+	if value, ok := lookupEnvironment(key); ok {
+		return value, nil
+	}
+	return nil, nil
 }
 
 func stringValue(arguments ...any) (any, error) {
@@ -73,7 +80,13 @@ func stringValue(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return config.String(key), nil
+	if result := config.Get(key); result.OK {
+		return config.String(key), nil
+	}
+	if value, ok := lookupEnvironment(key); ok {
+		return value, nil
+	}
+	return "", nil
 }
 
 func intValue(arguments ...any) (any, error) {
@@ -85,7 +98,16 @@ func intValue(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return config.Int(key), nil
+	if result := config.Get(key); result.OK {
+		return config.Int(key), nil
+	}
+	if value, ok := lookupEnvironment(key); ok {
+		parsed, err := strconv.Atoi(value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+	return 0, nil
 }
 
 func boolValue(arguments ...any) (any, error) {
@@ -97,7 +119,16 @@ func boolValue(arguments ...any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return config.Bool(key), nil
+	if result := config.Get(key); result.OK {
+		return config.Bool(key), nil
+	}
+	if value, ok := lookupEnvironment(key); ok {
+		parsed, err := strconv.ParseBool(value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+	return false, nil
 }
 
 func enableFeature(arguments ...any) (any, error) {
@@ -144,4 +175,13 @@ func enabledFeatures(arguments ...any) (any, error) {
 		return nil, err
 	}
 	return config.EnabledFeatures(), nil
+}
+
+func lookupEnvironment(key string) (string, bool) {
+	return os.LookupEnv(environmentKey(key))
+}
+
+func environmentKey(key string) string {
+	replacer := strings.NewReplacer(".", "_", "-", "_", "/", "_", " ", "_")
+	return strings.ToUpper(replacer.Replace(strings.TrimSpace(key)))
 }

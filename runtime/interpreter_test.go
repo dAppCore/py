@@ -146,6 +146,36 @@ print(process.run(%q, "env", "GOOS"))
 	}
 }
 
+func TestInterpreter_Run_ConfigEnvFallback_Good(t *testing.T) {
+	t.Setenv("DATABASE_HOST", "db.internal")
+	t.Setenv("PORT", "8080")
+	t.Setenv("DEBUG", "true")
+
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import config
+cfg = config.new()
+print(config.get(cfg, "database.host"))
+print(config.int(cfg, "port"))
+print(config.bool(cfg, "debug"))
+config.set(cfg, "database.host", "override.internal")
+config.set(cfg, "port", 9000)
+config.set(cfg, "debug", False)
+print(config.string(cfg, "database.host"))
+print(config.int(cfg, "port"))
+print(config.bool(cfg, "debug"))
+`)
+	if err != nil {
+		t.Fatalf("run config env fallback: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if !reflect.DeepEqual(lines, []string{"db.internal", "8080", "True", "override.internal", "9000", "False"}) {
+		t.Fatalf("unexpected output lines %#v", lines)
+	}
+}
+
 func TestInterpreter_Run_PathAndStringsImport_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 
@@ -240,6 +270,32 @@ print(knn.search(embeddings, [1.0, 0.0], k=2, metric="cosine"))
 	}
 	if !strings.Contains(lines[3], `"index": 0`) || !strings.Contains(lines[3], `"index": 2`) {
 		t.Fatalf("unexpected knn output %q", lines[3])
+	}
+}
+
+func TestInterpreter_Run_DirectNestedMathImports_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+import core.math.kdtree as kdtree
+from core.math.knn import search
+tree = kdtree.build([[0.0, 0.0], [1.0, 1.0], [3.0, 3.0]], metric="euclidean")
+print(tree.nearest([0.8, 0.8], k=2))
+print(search([[1.0, 0.0], [0.0, 1.0], [0.8, 0.2]], [1.0, 0.0], k=2, metric="cosine"))
+`)
+	if err != nil {
+		t.Fatalf("run nested math imports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 output lines, got %#v", lines)
+	}
+	if !strings.Contains(lines[0], `"index": 1`) || !strings.Contains(lines[0], `"index": 0`) {
+		t.Fatalf("unexpected kdtree output %q", lines[0])
+	}
+	if !strings.Contains(lines[1], `"index": 0`) || !strings.Contains(lines[1], `"index": 2`) {
+		t.Fatalf("unexpected knn output %q", lines[1])
 	}
 }
 

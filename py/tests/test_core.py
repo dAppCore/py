@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import importlib
+import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from core import config, data, echo, err, fs, json, log, math as core_math, medium, options, path, process, service, strings
 
@@ -31,6 +34,23 @@ class CorePyTests(unittest.TestCase):
         self.assertTrue(runtime_config.bool("debug"))
         self.assertTrue(runtime_config.enabled("tier1"))
         self.assertEqual(runtime_config.enabled_features(), ["tier1"])
+
+    def test_config_reads_environment_when_setting_missing(self) -> None:
+        runtime_config = config.Config()
+
+        with patch.dict(os.environ, {"DATABASE_HOST": "db.internal", "PORT": "8080", "DEBUG": "true"}, clear=False):
+            self.assertEqual(runtime_config.get("database.host"), "db.internal")
+            self.assertEqual(runtime_config.string("database.host"), "db.internal")
+            self.assertEqual(runtime_config.int("port"), 8080)
+            self.assertTrue(runtime_config.bool("debug"))
+
+        runtime_config.set("database.host", "override.internal")
+        runtime_config.set("port", 9000)
+        runtime_config.set("debug", False)
+        with patch.dict(os.environ, {"DATABASE_HOST": "db.internal", "PORT": "8080", "DEBUG": "true"}, clear=False):
+            self.assertEqual(runtime_config.string("database.host"), "override.internal")
+            self.assertEqual(runtime_config.int("port"), 9000)
+            self.assertFalse(runtime_config.bool("debug"))
 
     def test_module_level_surface_matches_tier1_shape(self) -> None:
         values = options.new({"name": "corepy", "port": 8080})
@@ -148,6 +168,21 @@ class CorePyTests(unittest.TestCase):
             metric="cosine",
         )
         self.assertEqual([item["index"] for item in cosine_neighbours], [0, 2])
+
+    def test_math_submodules_are_importable(self) -> None:
+        kdtree_module = importlib.import_module("core.math.kdtree")
+        knn_module = importlib.import_module("core.math.knn")
+
+        tree = kdtree_module.build([[0.0, 0.0], [1.0, 1.0]], metric="euclidean")
+        self.assertEqual([item["index"] for item in tree.nearest([0.8, 0.8], k=2)], [1, 0])
+
+        neighbours = knn_module.search(
+            [[1.0, 0.0], [0.0, 1.0], [0.8, 0.2]],
+            [1.0, 0.0],
+            k=2,
+            metric="cosine",
+        )
+        self.assertEqual([item["index"] for item in neighbours], [0, 2])
 
 
 if __name__ == "__main__":
