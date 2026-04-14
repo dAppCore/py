@@ -7,11 +7,13 @@ different syntax surface.
 ## Current Implementation
 
 - `runtime/` contains a bootstrap Tier 1 interpreter that validates the CorePy
-  module contract and import shape without waiting on the gpython dependency.
+  module contract, import shape, and Python-style list/dict type mapping
+  without waiting on the gpython dependency.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
   `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
-  `core.log`, `core.err`, and `core.strings`.
+  `core.log`, `core.err`, `core.strings`, and the first `core.math` surface
+  (`mean`, `median`, `variance`, `stdev`, sorting, scaling, KNN/KDTree`).
 - `py/core/` contains the Python package surface for the RFC v1 modules,
   including docstrings, concrete fallbacks for CPython validation, and
   module-level helpers that mirror the Tier 1 binding shape.

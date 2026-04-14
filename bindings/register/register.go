@@ -8,6 +8,7 @@ import (
 	"dappco.re/go/py/bindings/fs"
 	"dappco.re/go/py/bindings/json"
 	"dappco.re/go/py/bindings/log"
+	mathbinding "dappco.re/go/py/bindings/math"
 	"dappco.re/go/py/bindings/medium"
 	"dappco.re/go/py/bindings/options"
 	pathbinding "dappco.re/go/py/bindings/path"
@@ -34,6 +35,7 @@ func DefaultModules(interpreter *runtime.Interpreter) error {
 		service.Register,
 		log.Register,
 		err.Register,
+		mathbinding.Register,
 		stringsbinding.Register,
 	} {
 		if err := registerModule(interpreter); err != nil {

@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 
-from core import config, data, echo, err, fs, json, log, medium, options, path, process, service, strings
+from core import config, data, echo, err, fs, json, log, math as core_math, medium, options, path, process, service, strings
 
 
 class CorePyTests(unittest.TestCase):
@@ -125,6 +125,29 @@ class CorePyTests(unittest.TestCase):
         self.assertEqual(strings.split_n("key=value=extra", "=", 2), ["key", "value=extra"])
         self.assertEqual(strings.join("/", "deploy", "to", "homelab"), "deploy/to/homelab")
         self.assertEqual(strings.concat("deploy", "/", "to"), "deploy/to")
+
+    def test_math_surface(self) -> None:
+        self.assertEqual(core_math.sort([3, 1, 2]), [1, 2, 3])
+        self.assertEqual(core_math.binary_search([1, 2, 3], 2), 1)
+        self.assertAlmostEqual(core_math.mean([1, 2, 3]), 2.0)
+        self.assertAlmostEqual(core_math.median([1, 2, 3]), 2.0)
+        self.assertAlmostEqual(core_math.variance([1, 2, 3]), 2.0 / 3.0)
+        self.assertAlmostEqual(core_math.stdev([1, 2, 3]), (2.0 / 3.0) ** 0.5)
+        self.assertTrue(core_math.epsilon_equal(0.1 + 0.2, 0.3, 1e-9))
+        self.assertEqual(core_math.normalize([10, 20, 30]), [0.0, 0.5, 1.0])
+        self.assertEqual(core_math.rescale([10, 20, 30], -1.0, 1.0), [-1.0, 0.0, 1.0])
+
+        tree = core_math.kdtree.build([[0.0, 0.0], [1.0, 1.0], [3.0, 3.0]], metric="euclidean")
+        neighbours = tree.nearest([0.8, 0.8], k=2)
+        self.assertEqual([item["index"] for item in neighbours], [1, 0])
+
+        cosine_neighbours = core_math.knn.search(
+            [[1.0, 0.0], [0.0, 1.0], [0.8, 0.2]],
+            [1.0, 0.0],
+            k=2,
+            metric="cosine",
+        )
+        self.assertEqual([item["index"] for item in cosine_neighbours], [0, 2])
 
 
 if __name__ == "__main__":

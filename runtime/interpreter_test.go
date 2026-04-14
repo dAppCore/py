@@ -162,6 +162,28 @@ print(strings.concat(location, ":", path.base(location)))
 	}
 }
 
+func TestInterpreter_Run_ListAndDictTypeMapping_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import options, math
+values = [3, 1, 2]
+items = {"name": "corepy", "port": 8080}
+handle = options.new(items)
+print(options.string(handle, "name"))
+print(math.mean(values))
+print(math.sort(values))
+`)
+	if err != nil {
+		t.Fatalf("run script: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if !reflect.DeepEqual(lines, []string{"corepy", "2", "[1, 2, 3]"}) {
+		t.Fatalf("unexpected output lines %#v", lines)
+	}
+}
+
 func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 
@@ -235,6 +257,62 @@ func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 	}
 	if names[len(names)-1] != "brain" {
 		t.Fatalf("expected registered service in names, got %#v", names)
+	}
+}
+
+func TestInterpreter_Call_MathPrimitives_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	sortedValues, err := interpreter.Call("core.math", "sort", []any{3, 1, 2})
+	if err != nil {
+		t.Fatalf("sort values: %v", err)
+	}
+	if !reflect.DeepEqual(sortedValues, []any{1, 2, 3}) {
+		t.Fatalf("unexpected sorted values %#v", sortedValues)
+	}
+
+	index, err := interpreter.Call("core.math", "binary_search", []any{1, 2, 3}, 2)
+	if err != nil {
+		t.Fatalf("binary search: %v", err)
+	}
+	if index != 1 {
+		t.Fatalf("unexpected binary search index %#v", index)
+	}
+
+	tree, err := interpreter.Call("core.math.kdtree", "build", []any{
+		[]any{0.0, 0.0},
+		[]any{1.0, 1.0},
+		[]any{3.0, 3.0},
+	}, "euclidean")
+	if err != nil {
+		t.Fatalf("build kdtree: %v", err)
+	}
+
+	nearest, err := interpreter.Call("core.math.kdtree", "nearest", tree, []any{0.8, 0.8}, 2)
+	if err != nil {
+		t.Fatalf("kdtree nearest: %v", err)
+	}
+
+	neighbors := nearest.([]map[string]any)
+	if len(neighbors) != 2 {
+		t.Fatalf("expected 2 neighbours, got %#v", neighbors)
+	}
+	if neighbors[0]["index"] != 1 || neighbors[1]["index"] != 0 {
+		t.Fatalf("unexpected neighbour order %#v", neighbors)
+	}
+
+	cosine, err := interpreter.Call("core.math.knn", "search", []any{
+		[]any{1.0, 0.0},
+		[]any{0.0, 1.0},
+		[]any{0.8, 0.2},
+	}, []any{1.0, 0.0}, 2, "cosine")
+	if err != nil {
+		t.Fatalf("knn search: %v", err)
+	}
+
+	cosineNeighbors := cosine.([]map[string]any)
+	if cosineNeighbors[0]["index"] != 0 || cosineNeighbors[1]["index"] != 2 {
+		t.Fatalf("unexpected cosine neighbour order %#v", cosineNeighbors)
 	}
 }
 

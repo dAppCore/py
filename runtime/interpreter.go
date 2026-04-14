@@ -14,6 +14,7 @@ package runtime
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -300,6 +301,12 @@ func (interpreter *Interpreter) evaluateExpression(expression string, namespace 
 	if floatValue, err := strconv.ParseFloat(expression, 64); err == nil && strings.ContainsAny(expression, ".eE") {
 		return floatValue, nil
 	}
+	if strings.HasPrefix(expression, "[") && strings.HasSuffix(expression, "]") {
+		return interpreter.evaluateListLiteral(expression[1:len(expression)-1], namespace)
+	}
+	if strings.HasPrefix(expression, "{") && strings.HasSuffix(expression, "}") {
+		return interpreter.evaluateDictLiteral(expression[1:len(expression)-1], namespace)
+	}
 
 	if openIndex := topLevelIndex(expression, '('); openIndex != -1 && strings.HasSuffix(expression, ")") {
 		callableExpression := strings.TrimSpace(expression[:openIndex])
@@ -320,6 +327,68 @@ func (interpreter *Interpreter) evaluateExpression(expression string, namespace 
 		return nil, fmt.Errorf("unknown identifier %q", expression)
 	}
 	return value, nil
+}
+
+func (interpreter *Interpreter) evaluateListLiteral(body string, namespace map[string]any) (any, error) {
+	parts, err := splitTopLevel(body, ',')
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return []any{}, nil
+	}
+
+	values := make([]any, 0, len(parts))
+	for _, part := range parts {
+		if strings.TrimSpace(part) == "" {
+			continue
+		}
+		value, err := interpreter.evaluateExpression(part, namespace)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	return values, nil
+}
+
+func (interpreter *Interpreter) evaluateDictLiteral(body string, namespace map[string]any) (any, error) {
+	parts, err := splitTopLevel(body, ',')
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return map[string]any{}, nil
+	}
+
+	values := map[string]any{}
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		separatorIndex := topLevelIndex(part, ':')
+		if separatorIndex == -1 {
+			return nil, fmt.Errorf("invalid dict item %q", part)
+		}
+
+		keyValue, err := interpreter.evaluateExpression(part[:separatorIndex], namespace)
+		if err != nil {
+			return nil, err
+		}
+		key, ok := keyValue.(string)
+		if !ok {
+			return nil, fmt.Errorf("dict key %q must evaluate to string, got %T", part[:separatorIndex], keyValue)
+		}
+
+		value, err := interpreter.evaluateExpression(part[separatorIndex+1:], namespace)
+		if err != nil {
+			return nil, err
+		}
+		values[key] = value
+	}
+	return values, nil
 }
 
 func (interpreter *Interpreter) evaluateArguments(argumentBody string, namespace map[string]any) ([]any, error) {
@@ -410,15 +479,19 @@ func parseImportBinding(raw string) (moduleName string, bindingName string, hasA
 }
 
 func splitArguments(argumentBody string) ([]string, error) {
+	return splitTopLevel(argumentBody, ',')
+}
+
+func splitTopLevel(value string, separator rune) ([]string, error) {
 	var (
-		arguments []string
-		builder   strings.Builder
-		depth     int
-		quote     rune
-		escaped   bool
+		parts   []string
+		builder strings.Builder
+		stack   []rune
+		quote   rune
+		escaped bool
 	)
 
-	for _, character := range argumentBody {
+	for _, character := range value {
 		switch {
 		case quote != 0:
 			builder.WriteRune(character)
@@ -436,17 +509,17 @@ func splitArguments(argumentBody string) ([]string, error) {
 		case character == '"' || character == '\'':
 			quote = character
 			builder.WriteRune(character)
-		case character == '(':
-			depth++
+		case isOpenGrouping(character):
+			stack = append(stack, character)
 			builder.WriteRune(character)
-		case character == ')':
-			depth--
-			if depth < 0 {
-				return nil, fmt.Errorf("unbalanced parentheses in %q", argumentBody)
+		case isCloseGrouping(character):
+			if len(stack) == 0 || stack[len(stack)-1] != matchingOpenGrouping(character) {
+				return nil, fmt.Errorf("unbalanced grouping in %q", value)
 			}
+			stack = stack[:len(stack)-1]
 			builder.WriteRune(character)
-		case character == ',' && depth == 0:
-			arguments = append(arguments, strings.TrimSpace(builder.String()))
+		case character == separator && len(stack) == 0:
+			parts = append(parts, strings.TrimSpace(builder.String()))
 			builder.Reset()
 		default:
 			builder.WriteRune(character)
@@ -454,23 +527,23 @@ func splitArguments(argumentBody string) ([]string, error) {
 	}
 
 	if quote != 0 {
-		return nil, fmt.Errorf("unterminated string literal in %q", argumentBody)
+		return nil, fmt.Errorf("unterminated string literal in %q", value)
 	}
-	if depth != 0 {
-		return nil, fmt.Errorf("unbalanced parentheses in %q", argumentBody)
+	if len(stack) != 0 {
+		return nil, fmt.Errorf("unbalanced grouping in %q", value)
 	}
 
 	last := strings.TrimSpace(builder.String())
-	if last != "" {
-		arguments = append(arguments, last)
+	if last != "" || strings.TrimSpace(value) == "" {
+		parts = append(parts, last)
 	}
-	return arguments, nil
+	return parts, nil
 }
 
 func topLevelIndex(value string, target rune) int {
-	depth := 0
 	quote := rune(0)
 	escaped := false
+	var stack []rune
 
 	for index, character := range value {
 		switch {
@@ -488,13 +561,13 @@ func topLevelIndex(value string, target rune) int {
 			}
 		case character == '"' || character == '\'':
 			quote = character
-		case character == target && depth == 0:
+		case character == target && len(stack) == 0:
 			return index
-		case character == '(':
-			depth++
-		case character == ')':
-			if depth > 0 {
-				depth--
+		case isOpenGrouping(character):
+			stack = append(stack, character)
+		case isCloseGrouping(character):
+			if len(stack) > 0 && stack[len(stack)-1] == matchingOpenGrouping(character) {
+				stack = stack[:len(stack)-1]
 			}
 		}
 	}
@@ -506,6 +579,27 @@ func isQuoted(value string) bool {
 	return len(value) >= 2 && ((value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\''))
 }
 
+func isOpenGrouping(character rune) bool {
+	return character == '(' || character == '[' || character == '{'
+}
+
+func isCloseGrouping(character rune) bool {
+	return character == ')' || character == ']' || character == '}'
+}
+
+func matchingOpenGrouping(character rune) rune {
+	switch character {
+	case ')':
+		return '('
+	case ']':
+		return '['
+	case '}':
+		return '{'
+	default:
+		return 0
+	}
+}
+
 func formatValue(value any) string {
 	switch typed := value.(type) {
 	case nil:
@@ -515,7 +609,59 @@ func formatValue(value any) string {
 			return "True"
 		}
 		return "False"
+	case string:
+		return typed
 	default:
-		return fmt.Sprint(typed)
+		return formatCompositeValue(typed, false)
+	}
+}
+
+func formatCompositeValue(value any, nested bool) string {
+	switch typed := value.(type) {
+	case nil:
+		return "None"
+	case bool:
+		if typed {
+			return "True"
+		}
+		return "False"
+	case string:
+		if nested {
+			return strconv.Quote(typed)
+		}
+		return typed
+	}
+
+	reflected := reflect.ValueOf(value)
+	if !reflected.IsValid() {
+		return "None"
+	}
+
+	switch reflected.Kind() {
+	case reflect.Slice, reflect.Array:
+		parts := make([]string, 0, reflected.Len())
+		for index := 0; index < reflected.Len(); index++ {
+			parts = append(parts, formatCompositeValue(reflected.Index(index).Interface(), true))
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
+	case reflect.Map:
+		if reflected.Type().Key().Kind() != reflect.String {
+			return fmt.Sprint(value)
+		}
+
+		keys := make([]string, 0, reflected.Len())
+		for _, keyValue := range reflected.MapKeys() {
+			keys = append(keys, keyValue.String())
+		}
+		slices.Sort(keys)
+
+		parts := make([]string, 0, len(keys))
+		for _, key := range keys {
+			part := strconv.Quote(key) + ": " + formatCompositeValue(reflected.MapIndex(reflect.ValueOf(key)).Interface(), true)
+			parts = append(parts, part)
+		}
+		return "{" + strings.Join(parts, ", ") + "}"
+	default:
+		return fmt.Sprint(value)
 	}
 }
