@@ -12,7 +12,10 @@ different syntax surface.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
   `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
-  `core.log`, `core.err`, `core.strings`, and the first `core.math` surface
+  `core.log`, `core.err`, `core.strings`, `core.array`, `core.registry`,
+  `core.info`, `core.entitlement`, `core.action`, `core.task`, `core.i18n`,
+  the first `core.math` surface, plus initial RFC coverage for `core.cache`,
+  `core.crypto`, `core.dns`, and `core.scm`
   (`mean`, `median`, `variance`, `stdev`, sorting, scaling, signal helpers,
   and the `core.math.kdtree` / `core.math.knn` / `core.math.signal`
   import paths).

@@ -3,12 +3,14 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from core import config, data, echo, err, fs, json, log, math as core_math, medium, options, path, process, service, strings
+from core import action, array, cache, config, crypto, data, dns, echo, entitlement, err, fs, i18n, info, json, log, math as core_math, medium, options, path, process, registry, scm, service, strings, task
 
 
 class CorePyTests(unittest.TestCase):
@@ -189,6 +191,181 @@ class CorePyTests(unittest.TestCase):
         self.assertEqual(signal_module.moving_average([1, 3, 6, 10], window=2), [1.0, 2.0, 4.5, 8.0])
         self.assertEqual(signal_module.difference([1, 3, 6, 10], lag=2), [5.0, 7.0])
 
+    def test_cache_crypto_and_dns_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            store = cache.new(directory_name, 60)
+            cache.set(store, "greeting", {"name": "corepy", "debug": True})
+            self.assertTrue(cache.has(store, "greeting"))
+            self.assertEqual(cache.get(store, "greeting")["name"], "corepy")
+            self.assertEqual(cache.get(store, "missing", "fallback"), "fallback")
+            cache.set_with_ttl(store, "nested/config", {"enabled": True}, 60)
+            self.assertEqual(cache.keys(store), ["greeting", "nested/config"])
+            self.assertEqual(cache.keys(store, "nested"), ["nested/config"])
+            self.assertEqual(cache.clear(store, "nested"), 1)
+            self.assertTrue(cache.delete(store, "greeting"))
+            self.assertFalse(cache.has(store, "greeting"))
+
+        self.assertEqual(crypto.sha1("hello"), "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d")
+        self.assertEqual(
+            crypto.sha256("hello"),
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+        )
+        self.assertEqual(
+            crypto.hmac_sha256("secret", "hello"),
+            "88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b",
+        )
+        self.assertTrue(crypto.compare_digest("corepy", "corepy"))
+        self.assertFalse(crypto.compare_digest("corepy", "core"))
+        encoded = crypto.base64_encode("hello")
+        self.assertEqual(encoded, "aGVsbG8=")
+        self.assertEqual(crypto.base64_decode(encoded), b"hello")
+        self.assertEqual(len(crypto.random_bytes(16)), 16)
+
+        self.assertEqual(dns.lookup_port("tcp", "http"), 80)
+        self.assertTrue(any(address in {"127.0.0.1", "::1"} for address in dns.lookup_host("localhost")))
+        self.assertTrue(dns.lookup_ip("localhost"))
+        self.assertTrue(dns.reverse_lookup("127.0.0.1"))
+
+    def test_scm_surface(self) -> None:
+        if shutil.which("git") is None:
+            self.skipTest("git is not available")
+
+        with tempfile.TemporaryDirectory() as directory_name:
+            repo = Path(directory_name)
+            _git(repo, "init")
+            _git(repo, "config", "user.email", "corepy@example.com")
+            _git(repo, "config", "user.name", "CorePy Tests")
+            (repo / "README.md").write_text("hello\n", encoding="utf-8")
+            _git(repo, "add", "README.md")
+            _git(repo, "commit", "-m", "initial")
+
+            self.assertTrue(scm.exists(repo))
+            self.assertEqual(scm.root(repo), str(repo.resolve()))
+            self.assertTrue(scm.branch(repo))
+            self.assertEqual(len(scm.head(repo)), 40)
+            self.assertIn("README.md", scm.tracked_files(repo))
+
+            clean_status = scm.status(repo)
+            self.assertTrue(clean_status["clean"])
+            self.assertEqual(clean_status["changes"], [])
+
+            (repo / "README.md").write_text("updated\n", encoding="utf-8")
+            dirty_status = scm.status(repo)
+            self.assertFalse(dirty_status["clean"])
+            self.assertTrue(dirty_status["changes"])
+
+    def test_array_registry_info_and_entitlement_surface(self) -> None:
+        values = array.new("a", "b")
+        array.add(values, "c")
+        array.add_unique(values, "c", "d")
+        self.assertTrue(array.contains(values, "d"))
+        array.remove(values, "b")
+        array.deduplicate(values)
+        self.assertEqual(array.as_list(values), ["a", "c", "d"])
+        self.assertEqual(array.len(values), 3)
+        array.clear(values)
+        self.assertEqual(array.as_list(values), [])
+
+        items = registry.new()
+        registry.set(items, "alpha", 1)
+        registry.set(items, "beta", 2)
+        self.assertTrue(registry.has(items, "alpha"))
+        self.assertEqual(registry.get(items, "alpha"), 1)
+        self.assertEqual(registry.get(items, "missing", "fallback"), "fallback")
+        self.assertEqual(registry.names(items), ["alpha", "beta"])
+        registry.disable(items, "beta")
+        self.assertTrue(registry.disabled(items, "beta"))
+        self.assertEqual(registry.list(items, "*"), [1])
+        registry.enable(items, "beta")
+        self.assertEqual(registry.list(items, "*"), [1, 2])
+        registry.seal(items)
+        self.assertTrue(registry.sealed(items))
+        with self.assertRaises(RuntimeError):
+            registry.set(items, "gamma", 3)
+        registry.open(items)
+        registry.set(items, "gamma", 3)
+        registry.lock(items)
+        self.assertTrue(registry.locked(items))
+        with self.assertRaises(RuntimeError):
+            registry.delete(items, "alpha")
+
+        snapshot = info.snapshot()
+        self.assertEqual(info.env("OS"), snapshot["OS"])
+        self.assertIn("DIR_HOME", info.keys())
+        self.assertTrue(info.env("DIR_TMP"))
+
+        grant = entitlement.new(True, False, 5, 4, 1, "")
+        self.assertTrue(entitlement.near_limit(grant, 0.8))
+        self.assertEqual(entitlement.usage_percent(grant), 80.0)
+        self.assertTrue(grant.near_limit(0.8))
+        self.assertEqual(grant.usage_percent(), 80.0)
+
+    def test_action_task_and_i18n_surface(self) -> None:
+        actions = action.new_registry()
+        action.register(actions, "produce", lambda _ctx, _values: "payload")
+        action.register(actions, "consume", lambda _ctx, values: f"got:{values['_input']}")
+
+        self.assertEqual(action.names(actions), ["produce", "consume"])
+        self.assertTrue(action.exists(action.get(actions, "produce")))
+        self.assertEqual(action.run(actions, "produce"), "payload")
+        action.disable(actions, "produce")
+        with self.assertRaises(RuntimeError):
+            action.run(actions, "produce")
+        action.enable(actions, "produce")
+
+        plan = task.new(
+            "pipeline",
+            [
+                {"action": "produce"},
+                {"action": "consume", "input": "previous"},
+            ],
+        )
+        self.assertTrue(task.exists(plan))
+        self.assertEqual(task.run(plan, actions), "got:payload")
+
+        tasks = task.new_registry()
+        task.register(tasks, "pipeline", [{"action": "produce"}])
+        self.assertEqual(task.names(tasks), ["pipeline"])
+
+        messages = i18n.new()
+        self.assertEqual(i18n.translate(messages, "hello.world"), "hello.world")
+        self.assertEqual(i18n.language(messages), "en")
+        self.assertEqual(i18n.available_languages(messages), ["en"])
+        i18n.add_locales(messages, "locales/core")
+        self.assertEqual(i18n.locales(messages), ["locales/core"])
+
+        class MockTranslator:
+            def __init__(self) -> None:
+                self._language = "en"
+
+            def translate(self, message_id: str, *args: object) -> str:
+                return f"translated:{message_id}"
+
+            def set_language(self, lang: str) -> None:
+                self._language = lang
+
+            def language(self) -> str:
+                return self._language
+
+            def available_languages(self) -> list[str]:
+                return ["en", "de", "fr"]
+
+        translator = MockTranslator()
+        i18n.set_translator(messages, translator)
+        self.assertEqual(i18n.translate(messages, "hello.world"), "translated:hello.world")
+        i18n.set_language(messages, "de")
+        self.assertEqual(i18n.language(messages), "de")
+        self.assertEqual(i18n.available_languages(messages), ["en", "de", "fr"])
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _git(directory: Path, *arguments: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(directory), *arguments],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )

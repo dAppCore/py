@@ -22,6 +22,27 @@ type lifecycleService struct {
 	stopped bool
 }
 
+type mockI18nTranslator struct {
+	language string
+}
+
+func (translator *mockI18nTranslator) Translate(id string, args ...any) core.Result {
+	return core.Result{Value: "translated:" + id, OK: true}
+}
+
+func (translator *mockI18nTranslator) SetLanguage(lang string) error {
+	translator.language = lang
+	return nil
+}
+
+func (translator *mockI18nTranslator) Language() string {
+	return translator.language
+}
+
+func (translator *mockI18nTranslator) AvailableLanguages() []string {
+	return []string{"en", "de", "fr"}
+}
+
 func (service *lifecycleService) OnStartup(ctx context.Context) core.Result {
 	service.started = true
 	return core.Result{OK: ctx.Err() == nil}
@@ -530,6 +551,10 @@ func TestInterpreter_Call_ProcessHelpers_Good(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find go binary: %v", err)
 	}
+	repositoryRoot, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatalf("resolve repository root: %v", err)
+	}
 
 	output, err := interpreter.Call("core.process", "run", goBinary, "env", "GOOS")
 	if err != nil {
@@ -539,15 +564,15 @@ func TestInterpreter_Call_ProcessHelpers_Good(t *testing.T) {
 		t.Fatalf("unexpected process output %#v", output)
 	}
 
-	inDirectoryOutput, err := interpreter.Call("core.process", "run_in", "/home/claude/Code/core/py", goBinary, "env", "GOMOD")
+	inDirectoryOutput, err := interpreter.Call("core.process", "run_in", repositoryRoot, goBinary, "env", "GOMOD")
 	if err != nil {
 		t.Fatalf("process run_in: %v", err)
 	}
-	if !strings.HasSuffix(strings.TrimSpace(inDirectoryOutput.(string)), "/home/claude/Code/core/py/go.mod") {
+	if strings.TrimSpace(inDirectoryOutput.(string)) != filepath.Join(repositoryRoot, "go.mod") {
 		t.Fatalf("unexpected process run_in output %#v", inDirectoryOutput)
 	}
 
-	envOutput, err := interpreter.Call("core.process", "run_with_env", "/home/claude/Code/core/py", map[string]string{"GOWORK": "off"}, goBinary, "env", "GOWORK")
+	envOutput, err := interpreter.Call("core.process", "run_with_env", repositoryRoot, map[string]string{"GOWORK": "off"}, goBinary, "env", "GOWORK")
 	if err != nil {
 		t.Fatalf("process run_with_env: %v", err)
 	}
@@ -730,5 +755,490 @@ func TestInterpreter_Call_PathAndStringHelpers_Good(t *testing.T) {
 	}
 	if !reflect.DeepEqual(parts, []string{"key", "value=extra"}) {
 		t.Fatalf("unexpected split parts %#v", parts)
+	}
+}
+
+func TestInterpreter_Run_AdditionalRFCModules_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	cacheDirectory := filepath.Join(t.TempDir(), "cache")
+	script := fmt.Sprintf(`
+from core import cache, crypto, dns
+store = cache.new(%q, 60)
+cache.set(store, "greeting", {"name": "corepy"})
+print(cache.has(store, "greeting"))
+print(crypto.sha256("hello"))
+print(dns.lookup_port("tcp", "http"))
+`, cacheDirectory)
+
+	output, err := interpreter.Run(script)
+	if err != nil {
+		t.Fatalf("run additional RFC imports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	expected := []string{
+		"True",
+		"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+		"80",
+	}
+	if !reflect.DeepEqual(lines, expected) {
+		t.Fatalf("unexpected output lines %#v", lines)
+	}
+}
+
+func TestInterpreter_Call_AdditionalRFCModules_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	cacheHandle, err := interpreter.Call("core.cache", "new", filepath.Join(t.TempDir(), "cache"), 60)
+	if err != nil {
+		t.Fatalf("create cache: %v", err)
+	}
+	if _, err := interpreter.Call("core.cache", "set", cacheHandle, "greeting", map[string]any{"name": "corepy", "debug": true}); err != nil {
+		t.Fatalf("set cache value: %v", err)
+	}
+
+	cachedValue, err := interpreter.Call("core.cache", "get", cacheHandle, "greeting")
+	if err != nil {
+		t.Fatalf("get cache value: %v", err)
+	}
+	cachedMap := cachedValue.(map[string]any)
+	if cachedMap["name"] != "corepy" || cachedMap["debug"] != true {
+		t.Fatalf("unexpected cached value %#v", cachedMap)
+	}
+
+	missingValue, err := interpreter.Call("core.cache", "get", cacheHandle, "missing", "fallback")
+	if err != nil {
+		t.Fatalf("get missing cache value: %v", err)
+	}
+	if missingValue != "fallback" {
+		t.Fatalf("unexpected missing cache default %#v", missingValue)
+	}
+
+	cacheKeys, err := interpreter.Call("core.cache", "keys", cacheHandle)
+	if err != nil {
+		t.Fatalf("list cache keys: %v", err)
+	}
+	if !reflect.DeepEqual(cacheKeys, []string{"greeting"}) {
+		t.Fatalf("unexpected cache keys %#v", cacheKeys)
+	}
+
+	sha1Digest, err := interpreter.Call("core.crypto", "sha1", "hello")
+	if err != nil {
+		t.Fatalf("sha1 digest: %v", err)
+	}
+	if sha1Digest != "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d" {
+		t.Fatalf("unexpected sha1 digest %#v", sha1Digest)
+	}
+
+	encoded, err := interpreter.Call("core.crypto", "base64_encode", "hello")
+	if err != nil {
+		t.Fatalf("base64 encode: %v", err)
+	}
+	if encoded != "aGVsbG8=" {
+		t.Fatalf("unexpected base64 encoded value %#v", encoded)
+	}
+
+	decoded, err := interpreter.Call("core.crypto", "base64_decode", "aGVsbG8=")
+	if err != nil {
+		t.Fatalf("base64 decode: %v", err)
+	}
+	if string(decoded.([]byte)) != "hello" {
+		t.Fatalf("unexpected base64 decoded value %#v", decoded)
+	}
+
+	random, err := interpreter.Call("core.crypto", "random_bytes", 16)
+	if err != nil {
+		t.Fatalf("random bytes: %v", err)
+	}
+	if len(random.([]byte)) != 16 {
+		t.Fatalf("unexpected random byte length %#v", len(random.([]byte)))
+	}
+
+	port, err := interpreter.Call("core.dns", "lookup_port", "tcp", "http")
+	if err != nil {
+		t.Fatalf("lookup port: %v", err)
+	}
+	if port != 80 {
+		t.Fatalf("unexpected lookup port %#v", port)
+	}
+
+	hosts, err := interpreter.Call("core.dns", "lookup_host", "localhost")
+	if err != nil {
+		t.Fatalf("lookup host: %v", err)
+	}
+	if len(hosts.([]string)) == 0 {
+		t.Fatalf("expected localhost lookup to return addresses, got %#v", hosts)
+	}
+}
+
+func TestInterpreter_Call_SCMHelpers_Good(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not available")
+	}
+
+	interpreter := newTestInterpreter(t)
+	repository := t.TempDir()
+
+	runGitCommand(t, repository, "init")
+	runGitCommand(t, repository, "config", "user.email", "corepy@example.com")
+	runGitCommand(t, repository, "config", "user.name", "CorePy Tests")
+	filename := filepath.Join(repository, "README.md")
+	if err := os.WriteFile(filename, []byte("hello\n"), 0600); err != nil {
+		t.Fatalf("write tracked file: %v", err)
+	}
+	runGitCommand(t, repository, "add", "README.md")
+	runGitCommand(t, repository, "commit", "-m", "initial")
+
+	existsValue, err := interpreter.Call("core.scm", "exists", repository)
+	if err != nil {
+		t.Fatalf("check scm existence: %v", err)
+	}
+	if existsValue != true {
+		t.Fatalf("expected repository to exist, got %#v", existsValue)
+	}
+
+	rootValue, err := interpreter.Call("core.scm", "root", repository)
+	if err != nil {
+		t.Fatalf("read repository root: %v", err)
+	}
+	expectedRoot := repository
+	if resolved, err := filepath.EvalSymlinks(repository); err == nil {
+		expectedRoot = resolved
+	}
+	if rootValue != expectedRoot {
+		t.Fatalf("unexpected repository root %#v", rootValue)
+	}
+
+	branchValue, err := interpreter.Call("core.scm", "branch", repository)
+	if err != nil {
+		t.Fatalf("read repository branch: %v", err)
+	}
+	if strings.TrimSpace(branchValue.(string)) == "" {
+		t.Fatalf("expected branch name, got %#v", branchValue)
+	}
+
+	headValue, err := interpreter.Call("core.scm", "head", repository)
+	if err != nil {
+		t.Fatalf("read repository head: %v", err)
+	}
+	if len(headValue.(string)) != 40 {
+		t.Fatalf("unexpected head hash %#v", headValue)
+	}
+
+	trackedValue, err := interpreter.Call("core.scm", "tracked_files", repository)
+	if err != nil {
+		t.Fatalf("read tracked files: %v", err)
+	}
+	if !reflect.DeepEqual(trackedValue, []string{"README.md"}) {
+		t.Fatalf("unexpected tracked files %#v", trackedValue)
+	}
+
+	statusValue, err := interpreter.Call("core.scm", "status", repository)
+	if err != nil {
+		t.Fatalf("read clean status: %v", err)
+	}
+	cleanStatus := statusValue.(map[string]any)
+	if cleanStatus["clean"] != true {
+		t.Fatalf("expected clean status, got %#v", cleanStatus)
+	}
+
+	if err := os.WriteFile(filename, []byte("updated\n"), 0600); err != nil {
+		t.Fatalf("update tracked file: %v", err)
+	}
+	statusValue, err = interpreter.Call("core.scm", "status", repository)
+	if err != nil {
+		t.Fatalf("read dirty status: %v", err)
+	}
+	dirtyStatus := statusValue.(map[string]any)
+	if dirtyStatus["clean"] != false {
+		t.Fatalf("expected dirty status, got %#v", dirtyStatus)
+	}
+	if len(dirtyStatus["changes"].([]string)) == 0 {
+		t.Fatalf("expected change entries in dirty status, got %#v", dirtyStatus)
+	}
+}
+
+func TestInterpreter_Run_CorePrimitivePorts_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import array, entitlement, info, registry
+values = array.new("a", "b")
+array.add(values, "c")
+array.add_unique(values, "c", "d")
+items = registry.new()
+registry.set(items, "alpha", 1)
+registry.set(items, "beta", 2)
+registry.disable(items, "beta")
+grant = entitlement.new(True, False, 5, 4, 1, "")
+print(array.as_list(values))
+print(registry.list(items, "*"))
+print(info.env("OS"))
+print(entitlement.near_limit(grant, 0.8))
+print(entitlement.usage_percent(grant))
+`)
+	if err != nil {
+		t.Fatalf("run core primitive ports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 5 {
+		t.Fatalf("expected 5 output lines, got %#v", lines)
+	}
+	if lines[0] != `["a", "b", "c", "d"]` {
+		t.Fatalf("unexpected array output %q", lines[0])
+	}
+	if lines[1] != `[1]` {
+		t.Fatalf("unexpected registry output %q", lines[1])
+	}
+	if lines[2] != goruntime.GOOS {
+		t.Fatalf("unexpected OS output %q", lines[2])
+	}
+	if lines[3] != "True" {
+		t.Fatalf("unexpected entitlement near-limit output %q", lines[3])
+	}
+	if lines[4] != "80" {
+		t.Fatalf("unexpected entitlement usage output %q", lines[4])
+	}
+}
+
+func TestInterpreter_Call_CorePrimitivePorts_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	arrayHandle, err := interpreter.Call("core.array", "new", "a", "b")
+	if err != nil {
+		t.Fatalf("create array: %v", err)
+	}
+	if _, err := interpreter.Call("core.array", "add", arrayHandle, "c"); err != nil {
+		t.Fatalf("add array value: %v", err)
+	}
+	if _, err := interpreter.Call("core.array", "add_unique", arrayHandle, "c", "d"); err != nil {
+		t.Fatalf("add unique array values: %v", err)
+	}
+	arrayValues, err := interpreter.Call("core.array", "as_list", arrayHandle)
+	if err != nil {
+		t.Fatalf("list array values: %v", err)
+	}
+	if !reflect.DeepEqual(arrayValues, []any{"a", "b", "c", "d"}) {
+		t.Fatalf("unexpected array values %#v", arrayValues)
+	}
+
+	registryHandle, err := interpreter.Call("core.registry", "new")
+	if err != nil {
+		t.Fatalf("create registry: %v", err)
+	}
+	if _, err := interpreter.Call("core.registry", "set", registryHandle, "alpha", 1); err != nil {
+		t.Fatalf("set registry alpha: %v", err)
+	}
+	if _, err := interpreter.Call("core.registry", "set", registryHandle, "beta", 2); err != nil {
+		t.Fatalf("set registry beta: %v", err)
+	}
+	if _, err := interpreter.Call("core.registry", "disable", registryHandle, "beta"); err != nil {
+		t.Fatalf("disable registry beta: %v", err)
+	}
+	listed, err := interpreter.Call("core.registry", "list", registryHandle, "*")
+	if err != nil {
+		t.Fatalf("list registry values: %v", err)
+	}
+	if !reflect.DeepEqual(listed, []any{1}) {
+		t.Fatalf("unexpected registry list %#v", listed)
+	}
+	if _, err := interpreter.Call("core.registry", "seal", registryHandle); err != nil {
+		t.Fatalf("seal registry: %v", err)
+	}
+	if _, err := interpreter.Call("core.registry", "set", registryHandle, "gamma", 3); err == nil {
+		t.Fatal("expected setting new key on sealed registry to fail")
+	}
+	if _, err := interpreter.Call("core.registry", "open", registryHandle); err != nil {
+		t.Fatalf("open registry: %v", err)
+	}
+	if _, err := interpreter.Call("core.registry", "set", registryHandle, "gamma", 3); err != nil {
+		t.Fatalf("set registry gamma after reopen: %v", err)
+	}
+
+	snapshot, err := interpreter.Call("core.info", "snapshot")
+	if err != nil {
+		t.Fatalf("snapshot info: %v", err)
+	}
+	if snapshot.(map[string]any)["OS"] != goruntime.GOOS {
+		t.Fatalf("unexpected info snapshot %#v", snapshot)
+	}
+
+	grant, err := interpreter.Call("core.entitlement", "new", true, false, 5, 4, 1, "")
+	if err != nil {
+		t.Fatalf("create entitlement: %v", err)
+	}
+	nearLimit, err := interpreter.Call("core.entitlement", "near_limit", grant, 0.8)
+	if err != nil {
+		t.Fatalf("read entitlement near-limit: %v", err)
+	}
+	if nearLimit != true {
+		t.Fatalf("expected near limit, got %#v", nearLimit)
+	}
+	usage, err := interpreter.Call("core.entitlement", "usage_percent", grant)
+	if err != nil {
+		t.Fatalf("read entitlement usage: %v", err)
+	}
+	if usage != 80.0 {
+		t.Fatalf("unexpected entitlement usage %#v", usage)
+	}
+}
+
+func TestInterpreter_Run_ActionTaskAndI18nPorts_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	output, err := interpreter.Run(`
+from core import action, i18n, task
+actions = action.new_registry()
+missing = action.get(actions, "missing")
+steps = [task.new_step("produce"), task.new_step("consume", input="previous")]
+plan = task.new("pipeline", steps)
+messages = i18n.new()
+print(action.exists(missing))
+print(task.exists(plan))
+print(i18n.translate(messages, "hello.world"))
+print(i18n.available_languages(messages))
+`)
+	if err != nil {
+		t.Fatalf("run action/task/i18n ports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	expected := []string{"False", "True", "hello.world", "[\"en\"]"}
+	if !reflect.DeepEqual(lines, expected) {
+		t.Fatalf("unexpected action/task/i18n output %#v", lines)
+	}
+}
+
+func TestInterpreter_Call_ActionTaskAndI18nPorts_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	actions, err := interpreter.Call("core.action", "new_registry")
+	if err != nil {
+		t.Fatalf("create action registry: %v", err)
+	}
+	if _, err := interpreter.Call(
+		"core.action",
+		"register",
+		actions,
+		"produce",
+		corepyruntime.Function(func(arguments ...any) (any, error) {
+			return "payload", nil
+		}),
+	); err != nil {
+		t.Fatalf("register produce action: %v", err)
+	}
+	if _, err := interpreter.Call(
+		"core.action",
+		"register",
+		actions,
+		"consume",
+		corepyruntime.Function(func(arguments ...any) (any, error) {
+			if len(arguments) == 0 {
+				return "missing", nil
+			}
+			values := arguments[0].(map[string]any)
+			return "got:" + values["_input"].(string), nil
+		}),
+	); err != nil {
+		t.Fatalf("register consume action: %v", err)
+	}
+
+	actionNames, err := interpreter.Call("core.action", "names", actions)
+	if err != nil {
+		t.Fatalf("list action names: %v", err)
+	}
+	if !reflect.DeepEqual(actionNames, []string{"produce", "consume"}) {
+		t.Fatalf("unexpected action names %#v", actionNames)
+	}
+
+	produced, err := interpreter.Call("core.action", "run", mustAction(t, interpreter, actions, "produce"), map[string]any{})
+	if err != nil {
+		t.Fatalf("run produce action: %v", err)
+	}
+	if produced != "payload" {
+		t.Fatalf("unexpected produce result %#v", produced)
+	}
+
+	steps := []any{
+		map[string]any{"action": "produce"},
+		map[string]any{"action": "consume", "input": "previous"},
+	}
+	plan, err := interpreter.Call("core.task", "new", "pipeline", steps)
+	if err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	result, err := interpreter.Call("core.task", "run", plan, actions, map[string]any{})
+	if err != nil {
+		t.Fatalf("run task: %v", err)
+	}
+	if result != "got:payload" {
+		t.Fatalf("unexpected task result %#v", result)
+	}
+
+	messages, err := interpreter.Call("core.i18n", "new")
+	if err != nil {
+		t.Fatalf("create i18n handle: %v", err)
+	}
+	translated, err := interpreter.Call("core.i18n", "translate", messages, "hello.world")
+	if err != nil {
+		t.Fatalf("translate without translator: %v", err)
+	}
+	if translated != "hello.world" {
+		t.Fatalf("unexpected untranslated value %#v", translated)
+	}
+
+	translator := &mockI18nTranslator{language: "en"}
+	if _, err := interpreter.Call("core.i18n", "set_translator", messages, translator); err != nil {
+		t.Fatalf("set translator: %v", err)
+	}
+	translated, err = interpreter.Call("core.i18n", "translate", messages, "hello.world")
+	if err != nil {
+		t.Fatalf("translate with translator: %v", err)
+	}
+	if translated != "translated:hello.world" {
+		t.Fatalf("unexpected translated value %#v", translated)
+	}
+	if _, err := interpreter.Call("core.i18n", "set_language", messages, "de"); err != nil {
+		t.Fatalf("set language: %v", err)
+	}
+	language, err := interpreter.Call("core.i18n", "language", messages)
+	if err != nil {
+		t.Fatalf("read language: %v", err)
+	}
+	if language != "de" {
+		t.Fatalf("unexpected language %#v", language)
+	}
+	available, err := interpreter.Call("core.i18n", "available_languages", messages)
+	if err != nil {
+		t.Fatalf("read available languages: %v", err)
+	}
+	if !reflect.DeepEqual(available, []string{"en", "de", "fr"}) {
+		t.Fatalf("unexpected available languages %#v", available)
+	}
+}
+
+func mustAction(t *testing.T, interpreter *corepyruntime.Interpreter, actions any, name string) any {
+	t.Helper()
+
+	item, err := interpreter.Call("core.action", "get", actions, name)
+	if err != nil {
+		t.Fatalf("get action %s: %v", name, err)
+	}
+	return item
+}
+
+func runGitCommand(t *testing.T, directory string, arguments ...string) {
+	t.Helper()
+
+	gitBinary, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatalf("find git binary: %v", err)
+	}
+
+	command := exec.Command(gitBinary, append([]string{"-C", directory}, arguments...)...)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("run git %v: %v: %s", arguments, err, strings.TrimSpace(string(output)))
 	}
 }
