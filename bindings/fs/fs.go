@@ -2,7 +2,7 @@ package fs
 
 import (
 	"os"
-	"path/filepath"
+	"path/filepath" // AX-6-exception: byte-write helper needs parent directory resolution for local files.
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"

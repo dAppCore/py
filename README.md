@@ -15,7 +15,9 @@ different syntax surface.
   `core.log`, `core.err`, `core.strings`, `core.array`, `core.registry`,
   `core.info`, `core.entitlement`, `core.action`, `core.task`, `core.i18n`,
   the first `core.math` surface, plus initial RFC coverage for `core.cache`,
-  `core.crypto`, `core.dns`, and `core.scm`
+  `core.crypto`, `core.dns`, and `core.scm`, and importable planned stubs for
+  `core.api`, `core.ws`, `core.store`, `core.container`, `core.agent`, and
+  `core.mcp`
   (`mean`, `median`, `variance`, `stdev`, sorting, scaling, signal helpers,
   and the `core.math.kdtree` / `core.math.knn` / `core.math.signal`
   import paths).

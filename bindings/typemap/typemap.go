@@ -1,7 +1,7 @@
 package typemap
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: bootstrap type mapper reports dynamic Go types before gpython exception mapping lands.
 	"sort"
 
 	core "dappco.re/go/core"

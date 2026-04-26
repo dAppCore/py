@@ -2,12 +2,12 @@
 
 Use the same import paths across Tier 1 and Tier 2:
 
-    from core import action, array, cache, crypto, dns, echo, entitlement, fs, i18n, info, json, math, options, path, registry, scm, strings, task
+    from core import action, agent, api, array, cache, container, crypto, dns, echo, entitlement, fs, i18n, info, json, math, mcp, options, path, registry, scm, store, strings, task, ws
     print(echo("hello"))
     fs.write_file("/tmp/corepy.json", json.dumps({"name": "corepy"}))
 """
 
-from . import action, array, cache, config, crypto, data, dns, entitlement, err, fs, i18n, info, json, log, math, medium, options, path, process, registry, scm, service, strings, task
+from . import action, agent, api, array, cache, config, container, crypto, data, dns, entitlement, err, fs, i18n, info, json, log, math, mcp, medium, options, path, process, registry, scm, service, store, strings, task, ws
 
 __version__ = "0.2.0"
 
@@ -24,8 +24,11 @@ def echo(value: str) -> str:
 __all__ = [
     "array",
     "action",
+    "agent",
+    "api",
     "cache",
     "config",
+    "container",
     "crypto",
     "data",
     "dns",
@@ -38,6 +41,7 @@ __all__ = [
     "json",
     "log",
     "math",
+    "mcp",
     "medium",
     "options",
     "path",
@@ -45,6 +49,8 @@ __all__ = [
     "registry",
     "scm",
     "service",
+    "store",
     "strings",
     "task",
+    "ws",
 ]

@@ -3,6 +3,7 @@
 // This runtime implements the binding contract described in
 // plans/code/core/py/RFC.md so CorePy can validate module registration,
 // import shape, and round-trip execution before the gpython dependency lands.
+// TODO(corepy-gpython): replace this subset interpreter with LetheanNetwork/gpython.
 //
 //	interpreter := runtime.New()
 //	output, err := interpreter.Run(`
@@ -13,11 +14,11 @@ package runtime
 
 import (
 	"bytes"
-	"fmt"
+	"fmt" // AX-6-exception: bootstrap parser uses fmt error formatting until gpython owns exception construction.
 	"reflect"
 	"slices"
 	"strconv"
-	"strings"
+	"strings" // AX-6-exception: bootstrap parser needs tokenizer helpers beyond the current core string wrapper set.
 )
 
 // Function is a Python-callable binding exposed by a module.

@@ -1,9 +1,9 @@
 package scm
 
 import (
-	"fmt"
-	"os/exec"
-	"strings"
+	"fmt"     // AX-6-exception: SCM bootstrap preserves wrapped git command errors.
+	"os/exec" // AX-6-exception: SCM binding shells to git until go-scm is wired as the backing primitive.
+	"strings" // AX-6-exception: SCM parses git porcelain output with stdlib line helpers.
 
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"

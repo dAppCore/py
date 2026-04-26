@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
+	"fmt" // AX-6-exception: crypto helpers preserve wrapped stdlib errors from hashing/decoding/randomness.
 
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"

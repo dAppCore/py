@@ -1,7 +1,7 @@
 package task
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: task bootstrap validation reports dynamic Go types and action names.
 
 	core "dappco.re/go/core"
 	actionbinding "dappco.re/go/py/bindings/action"

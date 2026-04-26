@@ -1,10 +1,10 @@
 package mathbinding
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: bootstrap math diagnostics need formatted type and value output until Poindexter binding split.
 	stdmath "math"
 	"sort"
-	"strings"
+	"strings" // AX-6-exception: bootstrap math sorting/keyword diagnostics need Compare, Join, and ToLower.
 
 	"dappco.re/go/py/runtime"
 )

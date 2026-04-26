@@ -1,7 +1,7 @@
 package action
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: reflection-backed bootstrap call diagnostics need formatted type output.
 	"reflect"
 
 	core "dappco.re/go/core"

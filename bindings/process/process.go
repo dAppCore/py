@@ -3,11 +3,11 @@ package process
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"fmt" // AX-6-exception: process bootstrap preserves wrapped stderr context from exec failures.
 	"os"
-	"os/exec"
+	"os/exec" // AX-6-exception: this binding provides the process primitive before go-process is registered.
 	"sort"
-	"strings"
+	"strings" // AX-6-exception: process bootstrap trims stderr captured from os/exec.
 	"sync"
 
 	core "dappco.re/go/core"

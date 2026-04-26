@@ -1,7 +1,7 @@
 package i18n
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: bootstrap translator validation reports dynamic Go types.
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"

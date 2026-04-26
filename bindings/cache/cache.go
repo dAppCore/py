@@ -1,13 +1,13 @@
 package cache
 
 import (
-	"encoding/json"
-	"fmt"
+	"encoding/json" // AX-6-exception: cache decoding uses Decoder.UseNumber to preserve Python int/float shape.
+	"fmt"           // AX-6-exception: file-backed cache diagnostics preserve wrapped OS errors during bootstrap.
 	"io/fs"
 	"os"
-	"path/filepath"
+	"path/filepath" // AX-6-exception: cache key walking needs WalkDir, Rel, and ToSlash.
 	"slices"
-	"strings"
+	"strings" // AX-6-exception: cache normalization needs Reader, ReplaceAll, and ContainsAny.
 	"time"
 
 	"dappco.re/go/py/bindings/typemap"

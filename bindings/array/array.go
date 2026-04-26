@@ -1,7 +1,7 @@
 package array
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: bootstrap handle validation reports dynamic Go types.
 	"reflect"
 
 	"dappco.re/go/py/runtime"

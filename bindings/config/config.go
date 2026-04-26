@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
-	"strings"
+	"strings" // AX-6-exception: environment key normalization uses Replacer until core exposes equivalent composition.
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"

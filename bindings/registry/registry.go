@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"fmt"
+	"fmt" // AX-6-exception: registry bootstrap validation reports dynamic Go types.
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"

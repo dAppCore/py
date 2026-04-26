@@ -2,7 +2,7 @@ package medium
 
 import (
 	"os"
-	"path/filepath"
+	"path/filepath" // AX-6-exception: file-backed Medium writes need parent directory resolution.
 	"unicode/utf8"
 
 	core "dappco.re/go/core"
