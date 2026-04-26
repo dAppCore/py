@@ -11,7 +11,7 @@ import (
 // Register exposes DNS resolution helpers.
 //
 //	dns.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.dns",
 		Documentation: "DNS helpers for CorePy",

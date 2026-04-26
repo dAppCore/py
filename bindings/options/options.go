@@ -9,7 +9,7 @@ import (
 // Register exposes Core Options bindings.
 //
 //	options.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.options",
 		Documentation: "Typed option primitives backed by dappco.re/go/core",

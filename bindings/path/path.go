@@ -9,7 +9,7 @@ import (
 // Register exposes path helpers backed by dappco.re/go/core.
 //
 //	pathbinding.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.path",
 		Documentation: "Path helpers backed by dappco.re/go/core",

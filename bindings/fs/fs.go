@@ -12,7 +12,7 @@ import (
 // Register exposes filesystem bindings backed by core.Fs.
 //
 //	fs.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.fs",
 		Documentation: "Filesystem primitives backed by dappco.re/go/core",

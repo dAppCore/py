@@ -11,7 +11,7 @@ import (
 // Register exposes Service bindings backed by dappco.re/go/core.
 //
 //	service.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.service",
 		Documentation: "Service registry backed by dappco.re/go/core",

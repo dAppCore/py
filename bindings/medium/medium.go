@@ -13,7 +13,7 @@ import (
 // Register exposes Medium bindings for memory and filesystem-backed content.
 //
 //	medium.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.medium",
 		Documentation: "Medium-backed content helpers for memory and filesystem transports",

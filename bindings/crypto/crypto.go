@@ -16,7 +16,7 @@ import (
 // Register exposes hashing and encoding helpers.
 //
 //	crypto.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.crypto",
 		Documentation: "Cryptographic helpers for CorePy",

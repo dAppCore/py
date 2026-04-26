@@ -9,7 +9,7 @@ import (
 // Register exposes JSON bindings backed by dappco.re/go/core.
 //
 //	json.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.json",
 		Documentation: "JSON helpers backed by dappco.re/go/core",

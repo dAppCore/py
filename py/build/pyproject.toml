@@ -1,0 +1,17 @@
+[project]
+name = "core-tier2-stub"
+version = "0.2.0"
+description = "CorePy Tier 2 gopy build scaffold"
+license = { text = "EUPL-1.2" }
+requires-python = ">=3.13"
+authors = [
+    { name = "Lethean CIC" }
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core"]
+include = ["_build_stub.py"]

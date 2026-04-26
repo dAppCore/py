@@ -5,7 +5,7 @@ import "dappco.re/go/py/runtime"
 // Register exposes the bootstrap `core.echo` round-trip.
 //
 //	echo.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core",
 		Documentation: "Root CorePy module",

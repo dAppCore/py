@@ -9,7 +9,7 @@ import (
 // Register exposes error helpers backed by dappco.re/go/core.
 //
 //	err.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.err",
 		Documentation: "Structured errors backed by dappco.re/go/core",

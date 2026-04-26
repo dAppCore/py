@@ -12,7 +12,7 @@ import (
 // Register exposes Git-backed source-control helpers.
 //
 //	scm.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.scm",
 		Documentation: "Git helpers for CorePy",

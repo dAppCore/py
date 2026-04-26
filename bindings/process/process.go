@@ -23,7 +23,7 @@ var (
 // Register exposes Process bindings backed by core.Process.
 //
 //	process.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.process",
 		Documentation: "Process helpers backed by dappco.re/go/core",

@@ -24,7 +24,7 @@ type handle struct {
 // Register exposes Core i18n helpers.
 //
 //	i18n.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.i18n",
 		Documentation: "Locale and translation helpers for CorePy",

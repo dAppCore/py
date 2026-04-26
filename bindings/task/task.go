@@ -27,7 +27,7 @@ type Registry = core.Registry[*Handle]
 // Register exposes Core task helpers.
 //
 //	task.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.task",
 		Documentation: "Task composition helpers for CorePy",

@@ -11,7 +11,7 @@ import (
 // Register exposes logging bindings backed by dappco.re/go/core.
 //
 //	log.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.log",
 		Documentation: "Structured logging backed by dappco.re/go/core",

@@ -11,7 +11,7 @@ import (
 // Register exposes Core system information helpers.
 //
 //	info.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.info",
 		Documentation: "System information helpers for CorePy",

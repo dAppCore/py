@@ -13,7 +13,7 @@ import (
 // Register exposes Config bindings backed by dappco.re/go/core.
 //
 //	config.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.config",
 		Documentation: "Runtime settings backed by dappco.re/go/core",

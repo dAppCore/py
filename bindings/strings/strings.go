@@ -9,7 +9,7 @@ import (
 // Register exposes string helpers backed by dappco.re/go/core.
 //
 //	stringsbinding.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.strings",
 		Documentation: "String helpers backed by dappco.re/go/core",

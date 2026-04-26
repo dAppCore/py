@@ -53,14 +53,73 @@ func (service *lifecycleService) OnShutdown(ctx context.Context) core.Result {
 	return core.Result{OK: ctx.Err() == nil}
 }
 
-func newTestInterpreter(t *testing.T) *corepyruntime.Interpreter {
+type testInterpreter interface {
+	corepyruntime.Interpreter
+	corepyruntime.DirectCaller
+}
+
+func newTestInterpreter(t *testing.T) testInterpreter {
 	t.Helper()
 
-	interpreter := corepyruntime.New()
+	interpreter, err := corepyruntime.New(corepyruntime.Options{})
+	if err != nil {
+		t.Fatalf("create interpreter: %v", err)
+	}
 	if err := register.DefaultModules(interpreter); err != nil {
 		t.Fatalf("register modules: %v", err)
 	}
-	return interpreter
+	caller, ok := interpreter.(testInterpreter)
+	if !ok {
+		t.Fatalf("interpreter does not expose direct calls: %T", interpreter)
+	}
+	return caller
+}
+
+func TestNew_DefaultBackendBootstrap_Good(t *testing.T) {
+	interpreter, err := corepyruntime.New(corepyruntime.Options{})
+	if err != nil {
+		t.Fatalf("create default interpreter: %v", err)
+	}
+	defer interpreter.Close()
+
+	if err := register.DefaultModules(interpreter); err != nil {
+		t.Fatalf("register modules: %v", err)
+	}
+
+	output, err := interpreter.Run(`from core import echo; print(echo('hello'))`)
+	if err != nil {
+		t.Fatalf("run script: %v", err)
+	}
+	if strings.TrimSpace(output) != "hello" {
+		t.Fatalf("unexpected output %q", output)
+	}
+}
+
+func TestNew_GPythonBackendNotBuilt_Bad(t *testing.T) {
+	interpreter, err := corepyruntime.New(corepyruntime.Options{Backend: corepyruntime.BackendGPython})
+	if err == nil {
+		_ = interpreter.Close()
+		t.Fatal("expected gpython backend to report not-built error")
+	}
+
+	var backendErr corepyruntime.BackendNotBuiltError
+	if !errors.As(err, &backendErr) {
+		t.Fatalf("expected BackendNotBuiltError, got %T: %v", err, err)
+	}
+	if backendErr.Backend != corepyruntime.BackendGPython {
+		t.Fatalf("unexpected backend in error %#v", backendErr)
+	}
+}
+
+func TestNew_UnknownBackend_Ugly(t *testing.T) {
+	interpreter, err := corepyruntime.New(corepyruntime.Options{Backend: "cpython"})
+	if err == nil {
+		_ = interpreter.Close()
+		t.Fatal("expected unknown backend to fail")
+	}
+	if !strings.Contains(err.Error(), "unknown backend") {
+		t.Fatalf("unexpected error %v", err)
+	}
 }
 
 func TestInterpreter_Run_EchoRoundTrip_Good(t *testing.T) {
@@ -1219,7 +1278,7 @@ func TestInterpreter_Call_ActionTaskAndI18nPorts_Good(t *testing.T) {
 	}
 }
 
-func mustAction(t *testing.T, interpreter *corepyruntime.Interpreter, actions any, name string) any {
+func mustAction(t *testing.T, interpreter testInterpreter, actions any, name string) any {
 	t.Helper()
 
 	item, err := interpreter.Call("core.action", "get", actions, name)

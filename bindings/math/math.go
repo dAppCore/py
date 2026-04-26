@@ -12,7 +12,7 @@ import (
 // Register exposes math helpers backed by pure Go algorithms.
 //
 //	mathbinding.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	for _, module := range []runtime.Module{
 		{
 			Name:          "core.math",

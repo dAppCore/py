@@ -14,7 +14,7 @@ type handle struct {
 // Register exposes Core array helpers.
 //
 //	array.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.array",
 		Documentation: "Array helpers for CorePy",

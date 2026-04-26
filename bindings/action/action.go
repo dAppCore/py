@@ -24,7 +24,7 @@ type Registry = core.Registry[*Handle]
 // Register exposes Core action helpers.
 //
 //	action.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.action",
 		Documentation: "Named action helpers for CorePy",

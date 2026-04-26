@@ -10,7 +10,7 @@ import (
 // Register exposes Core entitlement helpers.
 //
 //	entitlement.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.entitlement",
 		Documentation: "Entitlement helpers for CorePy",

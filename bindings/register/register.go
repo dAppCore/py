@@ -38,8 +38,8 @@ import (
 // DefaultModules registers the bootstrap CorePy module set.
 //
 //	register.DefaultModules(interpreter)
-func DefaultModules(interpreter *runtime.Interpreter) error {
-	for _, registerModule := range []func(*runtime.Interpreter) error{
+func DefaultModules(interpreter runtime.Interpreter) error {
+	for _, registerModule := range []func(runtime.Interpreter) error{
 		actionbinding.Register,
 		agent.Register,
 		api.Register,

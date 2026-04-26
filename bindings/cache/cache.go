@@ -30,7 +30,7 @@ type entry struct {
 // Register exposes file-backed cache helpers.
 //
 //	cache.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.cache",
 		Documentation: "JSON cache helpers for CorePy",

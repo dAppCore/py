@@ -11,7 +11,7 @@ import (
 // Register exposes Core registry helpers.
 //
 //	registry.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.registry",
 		Documentation: "Named collection helpers for CorePy",

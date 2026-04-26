@@ -14,7 +14,7 @@ import (
 // Register exposes Data bindings backed by dappco.re/go/core.
 //
 //	data.Register(interpreter)
-func Register(interpreter *runtime.Interpreter) error {
+func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.data",
 		Documentation: "Embedded content registry backed by dappco.re/go/core",
