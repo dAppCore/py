@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"dappco.re/go/py/runtime/tier2"
 )
 
-const version = "0.4.0"
+const version = "0.5.0"
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -28,6 +29,10 @@ func run(arguments []string) error {
 }
 
 func runWithIO(arguments []string, stdout io.Writer, stderr io.Writer) error {
+	return runWithStreams(arguments, os.Stdin, stdout, stderr)
+}
+
+func runWithStreams(arguments []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	if len(arguments) == 0 {
 		return usageError()
 	}
@@ -35,6 +40,8 @@ func runWithIO(arguments []string, stdout io.Writer, stderr io.Writer) error {
 	switch arguments[0] {
 	case "run":
 		return runScript(arguments[1:], stdout, stderr)
+	case "repl":
+		return runREPL(arguments[1:], stdin, stdout, stderr)
 	case "modules":
 		return listModules(arguments[1:], stdout, stderr)
 	case "tier2":
@@ -107,6 +114,54 @@ func runTier2Fallback(filename string, source string, python string, timeout tim
 	}
 	_, err := runner.RunSource(context.Background(), source)
 	return err
+}
+
+func runREPL(arguments []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+	flags := flag.NewFlagSet("corepy repl", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	backend := flags.String("backend", corepyruntime.BackendBootstrap, "runtime backend: bootstrap or gpython")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return fmt.Errorf("usage: corepy repl [-backend bootstrap|gpython]")
+	}
+
+	interpreter, err := newInterpreter(*backend)
+	if err != nil {
+		return err
+	}
+	defer interpreter.Close()
+
+	sessionCreator, ok := interpreter.(corepyruntime.SessionCreator)
+	if !ok {
+		return fmt.Errorf("corepy repl: backend %q does not support stateful sessions", *backend)
+	}
+	session := sessionCreator.NewSession()
+
+	scanner := bufio.NewScanner(stdin)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		if line == ":quit" || line == "quit()" || line == "exit()" {
+			break
+		}
+
+		output, err := session.Run(line)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			continue
+		}
+		if _, err := io.WriteString(stdout, output); err != nil {
+			return err
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("corepy repl: read input: %w", err)
+	}
+	return nil
 }
 
 func listModules(arguments []string, stdout io.Writer, stderr io.Writer) error {
@@ -236,7 +291,7 @@ func localPythonPath() []string {
 }
 
 func usageError() error {
-	return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-tier2-fallback] [-python python3] [-timeout 10s] [-e source] [file.py] | corepy modules [-backend bootstrap|gpython] | corepy tier2 run|which | corepy version")
+	return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-tier2-fallback] [-python python3] [-timeout 10s] [-e source] [file.py] | corepy repl [-backend bootstrap|gpython] | corepy modules [-backend bootstrap|gpython] | corepy tier2 run|which | corepy version")
 }
 
 func tier2UsageError() error {

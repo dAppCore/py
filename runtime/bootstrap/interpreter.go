@@ -47,7 +47,12 @@ type UnsupportedImportError = contract.UnsupportedImportError
 type Interpreter struct {
 	modules map[string]*Module
 	order   []string
-	output  *bytes.Buffer
+}
+
+// Session executes CorePy source against a persistent namespace.
+type Session struct {
+	interpreter *Interpreter
+	namespace   map[string]any
 }
 
 // New creates an empty bootstrap interpreter with a root `core` module.
@@ -56,7 +61,6 @@ type Interpreter struct {
 func New() *Interpreter {
 	interpreter := &Interpreter{
 		modules: map[string]*Module{},
-		output:  &bytes.Buffer{},
 	}
 	_ = interpreter.RegisterModule(Module{
 		Name:          "core",
@@ -114,6 +118,19 @@ func (interpreter *Interpreter) Modules() []string {
 	return slices.Clone(interpreter.order)
 }
 
+// NewSession creates a stateful execution session for REPL-style callers.
+func (interpreter *Interpreter) NewSession() contract.Session {
+	return &Session{
+		interpreter: interpreter,
+		namespace:   map[string]any{},
+	}
+}
+
+// Run executes source while preserving namespace state between calls.
+func (session *Session) Run(script string) (string, error) {
+	return session.interpreter.run(script, session.namespace)
+}
+
 // Call invokes a registered function directly.
 //
 //	value, err := interpreter.Call("core.fs", "read_file", "/tmp/demo.txt")
@@ -143,9 +160,11 @@ func (interpreter *Interpreter) Call(moduleName, functionName string, arguments 
 //	    print(echo("hello"))
 //	`)
 func (interpreter *Interpreter) Run(script string) (string, error) {
-	interpreter.output.Reset()
-	namespace := map[string]any{}
+	return interpreter.run(script, map[string]any{})
+}
 
+func (interpreter *Interpreter) run(script string, namespace map[string]any) (string, error) {
+	output := &bytes.Buffer{}
 	for lineNumber, rawLine := range strings.Split(script, "\n") {
 		statements, err := splitTopLevel(rawLine, ';')
 		if err != nil {
@@ -172,7 +191,7 @@ func (interpreter *Interpreter) Run(script string) (string, error) {
 				if err != nil {
 					return "", fmt.Errorf("runtime.Run line %d: %w", lineNumber+1, err)
 				}
-				if _, err := fmt.Fprintln(interpreter.output, formatValue(value)); err != nil {
+				if _, err := fmt.Fprintln(output, formatValue(value)); err != nil {
 					return "", fmt.Errorf("runtime.Run line %d: write output: %w", lineNumber+1, err)
 				}
 			default:
@@ -198,7 +217,7 @@ func (interpreter *Interpreter) Run(script string) (string, error) {
 		}
 	}
 
-	return interpreter.output.String(), nil
+	return output.String(), nil
 }
 
 func (interpreter *Interpreter) executeDirectImport(line string, namespace map[string]any) error {

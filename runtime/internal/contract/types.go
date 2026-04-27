@@ -32,6 +32,17 @@ type Interpreter interface {
 	Close() error
 }
 
+// Session executes source while preserving Python namespace state between runs.
+type Session interface {
+	Run(source string) (string, error)
+}
+
+// SessionCreator is implemented by backends that support stateful interactive
+// execution.
+type SessionCreator interface {
+	NewSession() Session
+}
+
 // ModuleLister is implemented by backends that can report their registered
 // module names.
 type ModuleLister interface {

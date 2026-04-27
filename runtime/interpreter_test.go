@@ -191,6 +191,34 @@ print(echo("hello"))
 	}
 }
 
+func TestInterpreter_Session_PreservesNamespace_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+	sessionCreator, ok := interpreter.(corepyruntime.SessionCreator)
+	if !ok {
+		t.Fatalf("interpreter does not expose sessions: %T", interpreter)
+	}
+	session := sessionCreator.NewSession()
+
+	if output, err := session.Run(`from core import echo`); err != nil {
+		t.Fatalf("import echo in session: %v", err)
+	} else if output != "" {
+		t.Fatalf("expected no import output, got %q", output)
+	}
+	if output, err := session.Run(`message = echo("session")`); err != nil {
+		t.Fatalf("assign session value: %v", err)
+	} else if output != "" {
+		t.Fatalf("expected no assignment output, got %q", output)
+	}
+
+	output, err := session.Run(`print(message)`)
+	if err != nil {
+		t.Fatalf("print session value: %v", err)
+	}
+	if strings.TrimSpace(output) != "session" {
+		t.Fatalf("unexpected session output %q", output)
+	}
+}
+
 func TestInterpreter_Run_SubmoduleImport_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 

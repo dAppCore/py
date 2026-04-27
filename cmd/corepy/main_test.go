@@ -51,6 +51,23 @@ func TestRun_RunExpressionNoFallback_Bad(t *testing.T) {
 	}
 }
 
+func TestRun_ReplPreservesNamespace_Good(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	stdin := strings.NewReader("from core import echo\nmessage = echo(\"repl\")\nprint(message)\n:quit\n")
+
+	err := runWithStreams([]string{"repl"}, stdin, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("run repl: %v stderr=%q", err, stderr.String())
+	}
+	if strings.TrimSpace(stdout.String()) != "repl" {
+		t.Fatalf("unexpected stdout %q", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("unexpected stderr %q", stderr.String())
+	}
+}
+
 func TestRun_Modules_Good(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

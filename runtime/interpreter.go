@@ -36,6 +36,13 @@ type Module = contract.Module
 // Interpreter is the backend-neutral CorePy execution contract.
 type Interpreter = contract.Interpreter
 
+// Session executes source while preserving Python namespace state between runs.
+type Session = contract.Session
+
+// SessionCreator is implemented by backends that support stateful interactive
+// execution.
+type SessionCreator = contract.SessionCreator
+
 // ModuleLister is implemented by backends that can report registered modules.
 type ModuleLister = contract.ModuleLister
 

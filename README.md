@@ -18,6 +18,8 @@ different syntax surface.
   calling Core-backed primitives.
 - `corepy run -tier2-fallback` retries scripts in Tier 2 CPython when Tier 1
   reports an unsupported import, preserving the explicit two-tier boundary.
+- `corepy repl` opens a stateful Tier 1 line session for quick primitive
+  experiments without leaving the CorePy runtime.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
   `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,

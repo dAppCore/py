@@ -18,6 +18,11 @@ type Interpreter struct {
 	delegate *bootstrap.Interpreter
 }
 
+// Session preserves namespace state for the current build-tagged shell.
+type Session struct {
+	delegate contract.Session
+}
+
 // New creates the build-tagged gpython backend shell.
 func New(modules []contract.Module) (*Interpreter, error) {
 	delegate := bootstrap.New()
@@ -38,6 +43,16 @@ func (interpreter *Interpreter) Run(source string) (string, error) {
 // RegisterModule registers a CorePy module.
 func (interpreter *Interpreter) RegisterModule(module contract.Module) error {
 	return interpreter.delegate.RegisterModule(module)
+}
+
+// NewSession creates a stateful execution session.
+func (interpreter *Interpreter) NewSession() contract.Session {
+	return &Session{delegate: interpreter.delegate.NewSession()}
+}
+
+// Run executes source in the session namespace.
+func (session *Session) Run(source string) (string, error) {
+	return session.delegate.Run(source)
 }
 
 // Close releases interpreter resources.
