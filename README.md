@@ -9,6 +9,9 @@ different syntax surface.
 - `runtime/` contains a bootstrap Tier 1 interpreter that validates the CorePy
   module contract, import shape, and Python-style list/dict type mapping
   without waiting on the gpython dependency.
+- `runtime/tier2/` contains the CPython subprocess runner used for the Tier 2
+  escape hatch, with timeout, stdout/stderr streaming, and structured exit
+  results.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
   `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
@@ -28,6 +31,8 @@ different syntax surface.
 ## Validation
 
 ```bash
+GOWORK=off go mod tidy
+GOWORK=off go vet ./...
 GOWORK=off go test ./...
 PYTHONPATH=py python3 -m unittest discover -s py/tests -v
 ```

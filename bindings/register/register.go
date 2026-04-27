@@ -35,44 +35,65 @@ import (
 	"dappco.re/go/py/runtime"
 )
 
+// ModuleSpec describes one CorePy binding module and its registration hook.
+type ModuleSpec struct {
+	Name     string
+	Register func(runtime.Interpreter) error
+}
+
+// DefaultModuleSpecs returns the binding registry used by Tier 1 backends.
+func DefaultModuleSpecs() []ModuleSpec {
+	return []ModuleSpec{
+		{Name: "core.action", Register: actionbinding.Register},
+		{Name: "core.agent", Register: agent.Register},
+		{Name: "core.api", Register: api.Register},
+		{Name: "core.array", Register: array.Register},
+		{Name: "core.cache", Register: cache.Register},
+		{Name: "core.container", Register: container.Register},
+		{Name: "core.entitlement", Register: entitlementbinding.Register},
+		{Name: "core.echo", Register: echo.Register},
+		{Name: "core.fs", Register: fs.Register},
+		{Name: "core.json", Register: json.Register},
+		{Name: "core.medium", Register: medium.Register},
+		{Name: "core.options", Register: options.Register},
+		{Name: "core.path", Register: pathbinding.Register},
+		{Name: "core.process", Register: process.Register},
+		{Name: "core.config", Register: config.Register},
+		{Name: "core.data", Register: data.Register},
+		{Name: "core.i18n", Register: i18nbinding.Register},
+		{Name: "core.info", Register: infobinding.Register},
+		{Name: "core.service", Register: service.Register},
+		{Name: "core.log", Register: log.Register},
+		{Name: "core.err", Register: err.Register},
+		{Name: "core.mcp", Register: mcp.Register},
+		{Name: "core.crypto", Register: cryptobinding.Register},
+		{Name: "core.dns", Register: dnsbinding.Register},
+		{Name: "core.math", Register: mathbinding.Register},
+		{Name: "core.registry", Register: registrybinding.Register},
+		{Name: "core.scm", Register: scmbinding.Register},
+		{Name: "core.store", Register: store.Register},
+		{Name: "core.strings", Register: stringsbinding.Register},
+		{Name: "core.task", Register: taskbinding.Register},
+		{Name: "core.ws", Register: ws.Register},
+	}
+}
+
+// DefaultModuleNames returns the canonical default binding names.
+func DefaultModuleNames() []string {
+	specs := DefaultModuleSpecs()
+	names := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		names = append(names, spec.Name)
+	}
+	return names
+}
+
 // DefaultModules registers the bootstrap CorePy module set.
 //
 //	register.DefaultModules(interpreter)
 func DefaultModules(interpreter runtime.Interpreter) error {
-	for _, registerModule := range []func(runtime.Interpreter) error{
-		actionbinding.Register,
-		agent.Register,
-		api.Register,
-		array.Register,
-		cache.Register,
-		container.Register,
-		entitlementbinding.Register,
-		echo.Register,
-		fs.Register,
-		json.Register,
-		medium.Register,
-		options.Register,
-		pathbinding.Register,
-		process.Register,
-		config.Register,
-		data.Register,
-		i18nbinding.Register,
-		infobinding.Register,
-		service.Register,
-		log.Register,
-		err.Register,
-		mcp.Register,
-		cryptobinding.Register,
-		dnsbinding.Register,
-		mathbinding.Register,
-		registrybinding.Register,
-		scmbinding.Register,
-		store.Register,
-		stringsbinding.Register,
-		taskbinding.Register,
-		ws.Register,
-	} {
-		if err := registerModule(interpreter); err != nil {
+	for _, spec := range DefaultModuleSpecs() {
+		if err := spec.Register(interpreter); err != nil {
 			return err
 		}
 	}

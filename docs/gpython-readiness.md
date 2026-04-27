@@ -1,7 +1,23 @@
 # gpython Readiness Audit
 
-Pass 2 audit for swapping the bootstrap interpreter to the planned
+Pass 3 audit for swapping the bootstrap interpreter to the planned
 `LetheanNetwork/gpython` backend without rewriting primitive bindings.
+
+## Pass 3 Boundary
+
+The public runtime selector now routes `Options{Backend: "gpython"}` through a
+build-tagged factory:
+
+- default builds still return `BackendNotBuiltError`
+- `-tags gpython` builds instantiate `runtime/gpython`
+- `runtime/gpython` currently delegates to the bootstrap interpreter as a smoke
+  shell
+- TODO: replace that package-local delegate with the real
+  `LetheanNetwork/gpython` fork, `py.RegisterModule`, `py.METH_VARARGS`, and
+  `py.METH_KEYWORDS` wiring
+
+This keeps the gpython integration boundary testable without making the default
+build depend on a fork that is not vendored here yet.
 
 ## Audit Basis
 

@@ -15,6 +15,18 @@ not provide `gopy` or the target CPython toolchain, so this package installs as 
 documentation stub. Importing `core` raises `NotImplementedError` and points
 operators back to this build flow.
 
+Pass 3 adds a host-CPython subprocess runner in `runtime/tier2/` and exposes it
+through:
+
+```bash
+corepy tier2 run -e 'from core import echo; print(echo("hello"))'
+corepy tier2 run -timeout 30s script.py
+corepy tier2 which
+```
+
+That runner is not the final gopy extension. It is the managed process boundary
+for Tier 2 work while the native package remains a build scaffold.
+
 ## Build Flow
 
 Install prerequisites in the operator build environment:

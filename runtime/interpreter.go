@@ -91,7 +91,7 @@ func New(opts Options) (Interpreter, error) {
 		}
 		return interpreter, nil
 	case BackendGPython:
-		return nil, BackendNotBuiltError{Backend: BackendGPython, BuildTag: BackendGPython}
+		return newGPython(opts.Modules)
 	default:
 		return nil, fmt.Errorf("runtime.New: unknown backend %q", backend)
 	}

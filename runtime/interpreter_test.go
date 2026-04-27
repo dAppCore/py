@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"reflect"
 	goruntime "runtime"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/register"
@@ -98,8 +100,18 @@ func TestNew_DefaultBackendBootstrap_Good(t *testing.T) {
 func TestNew_GPythonBackendNotBuilt_Bad(t *testing.T) {
 	interpreter, err := corepyruntime.New(corepyruntime.Options{Backend: corepyruntime.BackendGPython})
 	if err == nil {
-		_ = interpreter.Close()
-		t.Fatal("expected gpython backend to report not-built error")
+		defer interpreter.Close()
+		if err := register.DefaultModules(interpreter); err != nil {
+			t.Fatalf("register gpython shim modules: %v", err)
+		}
+		output, err := interpreter.Run(`from core import echo; print(echo("hello"))`)
+		if err != nil {
+			t.Fatalf("run gpython shim smoke path: %v", err)
+		}
+		if strings.TrimSpace(output) != "hello" {
+			t.Fatalf("unexpected gpython shim output %q", output)
+		}
+		return
 	}
 
 	var backendErr corepyruntime.BackendNotBuiltError
@@ -119,6 +131,29 @@ func TestNew_UnknownBackend_Ugly(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown backend") {
 		t.Fatalf("unexpected error %v", err)
+	}
+}
+
+func TestRegister_DefaultModuleCatalog_Good(t *testing.T) {
+	names := register.DefaultModuleNames()
+	if len(names) < 20 {
+		t.Fatalf("expected default module catalog to cover RFC surface, got %#v", names)
+	}
+
+	seen := map[string]struct{}{}
+	for _, name := range names {
+		if !strings.HasPrefix(name, "core.") {
+			t.Fatalf("expected core.* module name, got %q", name)
+		}
+		if _, ok := seen[name]; ok {
+			t.Fatalf("duplicate module name %q", name)
+		}
+		seen[name] = struct{}{}
+	}
+	for _, required := range []string{"core.fs", "core.process", "core.math", "core.crypto", "core.ws"} {
+		if _, ok := seen[required]; !ok {
+			t.Fatalf("default catalog missing %s in %#v", required, names)
+		}
 	}
 }
 
@@ -645,6 +680,95 @@ func TestInterpreter_Call_ProcessHelpers_Good(t *testing.T) {
 	}
 	if exists != true {
 		t.Fatalf("expected process capability to exist, got %#v", exists)
+	}
+}
+
+func TestInterpreter_Call_ProcessRunResult_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	value, err := interpreter.Call(
+		"core.process",
+		"run_result",
+		os.Args[0],
+		"-test.run=TestProcessHelper",
+		"--",
+		corepyruntime.KeywordArguments{
+			"env": map[string]any{
+				"COREPY_PROCESS_HELPER": "1",
+				"COREPY_STDOUT":         "hello stdout\n",
+				"COREPY_STDERR":         "hello stderr\n",
+				"COREPY_EXIT":           "7",
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("run process result: %v", err)
+	}
+
+	result := value.(map[string]any)
+	if result["ok"] != false {
+		t.Fatalf("expected failed ok flag, got %#v", result)
+	}
+	if result["exit_code"] != 7 {
+		t.Fatalf("unexpected exit code %#v", result)
+	}
+	if result["stdout"] != "hello stdout\n" || result["stderr"] != "hello stderr\n" {
+		t.Fatalf("unexpected output capture %#v", result)
+	}
+	if result["timed_out"] != false {
+		t.Fatalf("unexpected timeout flag %#v", result)
+	}
+}
+
+func TestInterpreter_Call_ProcessRun_CheckFailure_Bad(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	_, err := interpreter.Call(
+		"core.process",
+		"run",
+		os.Args[0],
+		"-test.run=TestProcessHelper",
+		"--",
+		corepyruntime.KeywordArguments{
+			"env": map[string]any{
+				"COREPY_PROCESS_HELPER": "1",
+				"COREPY_STDERR":         "checked failure\n",
+				"COREPY_EXIT":           "9",
+			},
+		},
+	)
+	if err == nil {
+		t.Fatal("expected checked process failure")
+	}
+	if !strings.Contains(err.Error(), "checked failure") {
+		t.Fatalf("expected stderr in error, got %v", err)
+	}
+}
+
+func TestInterpreter_Call_ProcessRunResultTimeout_Ugly(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	value, err := interpreter.Call(
+		"core.process",
+		"run_result",
+		os.Args[0],
+		"-test.run=TestProcessHelper",
+		"--",
+		corepyruntime.KeywordArguments{
+			"timeout": "100ms",
+			"env": map[string]any{
+				"COREPY_PROCESS_HELPER": "1",
+				"COREPY_SLEEP_MS":       "5000",
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("timeout result should be inspectable without check: %v", err)
+	}
+
+	result := value.(map[string]any)
+	if result["timed_out"] != true || result["ok"] != false {
+		t.Fatalf("expected timeout result, got %#v", result)
 	}
 }
 
@@ -1300,4 +1424,21 @@ func runGitCommand(t *testing.T, directory string, arguments ...string) {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("run git %v: %v: %s", arguments, err, strings.TrimSpace(string(output)))
 	}
+}
+
+func TestProcessHelper(t *testing.T) {
+	if os.Getenv("COREPY_PROCESS_HELPER") != "1" {
+		return
+	}
+
+	if value := os.Getenv("COREPY_SLEEP_MS"); value != "" {
+		milliseconds, err := strconv.Atoi(value)
+		if err == nil && milliseconds > 0 {
+			time.Sleep(time.Duration(milliseconds) * time.Millisecond)
+		}
+	}
+	fmt.Fprint(os.Stdout, os.Getenv("COREPY_STDOUT"))
+	fmt.Fprint(os.Stderr, os.Getenv("COREPY_STDERR"))
+	exitCode, _ := strconv.Atoi(os.Getenv("COREPY_EXIT"))
+	os.Exit(exitCode)
 }

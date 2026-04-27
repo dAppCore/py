@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings" // AX-6-exception: process bootstrap trims stderr captured from os/exec.
 	"sync"
+	"time"
 
 	core "dappco.re/go/core"
 	"dappco.re/go/py/bindings/typemap"
@@ -19,6 +20,21 @@ var (
 	defaultCoreOnce sync.Once
 	defaultCore     *core.Core
 )
+
+type executionOptions struct {
+	Directory string
+	Env       []string
+	Timeout   time.Duration
+	Check     bool
+}
+
+type executionResult struct {
+	Command  []string
+	Stdout   string
+	Stderr   string
+	ExitCode int
+	TimedOut bool
+}
 
 // Register exposes Process bindings backed by core.Process.
 //
@@ -31,48 +47,101 @@ func Register(interpreter runtime.Interpreter) error {
 			"run":          run,
 			"run_in":       runIn,
 			"run_with_env": runWithEnv,
+			"run_result":   runResult,
 			"exists":       exists,
 		},
 	})
 }
 
 func run(arguments ...any) (any, error) {
-	command, processArguments, err := commandArgs(arguments, 0, "core.process.run")
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	options := executionOptions{Check: true}
+	if err := applyKeywordArguments(&options, "core.process.run", keywordArguments, "directory", "env", "timeout", "check"); err != nil {
+		return nil, err
+	}
+
+	command, processArguments, err := commandArgs(positional, 0, "core.process.run")
 	if err != nil {
 		return nil, err
 	}
 
-	return typemap.ResultValue(processCore().Process().Run(context.Background(), command, processArguments...), "core.process.run")
+	result, err := executeProcess(context.Background(), command, processArguments, options)
+	if err != nil {
+		return nil, err
+	}
+	return result.Stdout, nil
 }
 
 func runIn(arguments ...any) (any, error) {
-	directory, err := typemap.ExpectString(arguments, 0, "core.process.run_in")
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	options := executionOptions{Check: true}
+	if err := applyKeywordArguments(&options, "core.process.run_in", keywordArguments, "env", "timeout", "check"); err != nil {
+		return nil, err
+	}
+
+	directory, err := typemap.ExpectString(positional, 0, "core.process.run_in")
 	if err != nil {
 		return nil, err
 	}
-	command, processArguments, err := commandArgs(arguments, 1, "core.process.run_in")
+	options.Directory = directory
+	command, processArguments, err := commandArgs(positional, 1, "core.process.run_in")
 	if err != nil {
 		return nil, err
 	}
 
-	return typemap.ResultValue(processCore().Process().RunIn(context.Background(), directory, command, processArguments...), "core.process.run_in")
+	result, err := executeProcess(context.Background(), command, processArguments, options)
+	if err != nil {
+		return nil, err
+	}
+	return result.Stdout, nil
 }
 
 func runWithEnv(arguments ...any) (any, error) {
-	directory, err := typemap.ExpectString(arguments, 0, "core.process.run_with_env")
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	options := executionOptions{Check: true}
+	if err := applyKeywordArguments(&options, "core.process.run_with_env", keywordArguments, "timeout", "check"); err != nil {
+		return nil, err
+	}
+
+	directory, err := typemap.ExpectString(positional, 0, "core.process.run_with_env")
 	if err != nil {
 		return nil, err
 	}
-	env, err := envList(arguments, 1, "core.process.run_with_env")
+	env, err := envList(positional, 1, "core.process.run_with_env")
 	if err != nil {
 		return nil, err
 	}
-	command, processArguments, err := commandArgs(arguments, 2, "core.process.run_with_env")
+	options.Directory = directory
+	options.Env = env
+	command, processArguments, err := commandArgs(positional, 2, "core.process.run_with_env")
 	if err != nil {
 		return nil, err
 	}
 
-	return typemap.ResultValue(processCore().Process().RunWithEnv(context.Background(), directory, env, command, processArguments...), "core.process.run_with_env")
+	result, err := executeProcess(context.Background(), command, processArguments, options)
+	if err != nil {
+		return nil, err
+	}
+	return result.Stdout, nil
+}
+
+func runResult(arguments ...any) (any, error) {
+	positional, keywordArguments := runtime.SplitKeywordArguments(arguments)
+	options := executionOptions{}
+	if err := applyKeywordArguments(&options, "core.process.run_result", keywordArguments, "directory", "env", "timeout", "check"); err != nil {
+		return nil, err
+	}
+
+	command, processArguments, err := commandArgs(positional, 0, "core.process.run_result")
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := executeProcess(context.Background(), command, processArguments, options)
+	if err != nil {
+		return nil, err
+	}
+	return result.Map(), nil
 }
 
 func exists(arguments ...any) (any, error) {
@@ -93,12 +162,40 @@ func handleRun(ctx context.Context, options core.Options) core.Result {
 		return core.Result{Value: core.E("core.process.run", "command is required", nil), OK: false}
 	}
 
-	cmd := exec.CommandContext(ctx, command, optionStrings(options.Get("args"))...)
-	if directory := options.String("dir"); directory != "" {
-		cmd.Dir = directory
+	result, err := executeProcess(ctx, command, optionStrings(options.Get("args")), executionOptions{
+		Directory: options.String("dir"),
+		Env:       optionStrings(options.Get("env")),
+		Check:     true,
+	})
+	if err != nil {
+		return core.Result{
+			Value: core.E("core.process.run", core.Concat("command failed: ", command), err),
+			OK:    false,
+		}
 	}
-	if env := optionStrings(options.Get("env")); len(env) > 0 {
-		cmd.Env = append(os.Environ(), env...)
+
+	return core.Result{Value: result.Stdout, OK: true}
+}
+
+func executeProcess(ctx context.Context, command string, arguments []string, options executionOptions) (executionResult, error) {
+	if command == "" {
+		return executionResult{}, fmt.Errorf("core.process: command is required")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, options.Timeout)
+		defer cancel()
+	}
+
+	cmd := exec.CommandContext(ctx, command, arguments...)
+	if options.Directory != "" {
+		cmd.Dir = options.Directory
+	}
+	if len(options.Env) > 0 {
+		cmd.Env = append(os.Environ(), options.Env...)
 	}
 
 	var stdout bytes.Buffer
@@ -106,18 +203,101 @@ func handleRun(ctx context.Context, options core.Options) core.Result {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
-		cause := err
-		if stderrString := strings.TrimSpace(stderr.String()); stderrString != "" {
-			cause = fmt.Errorf("%w: %s", err, stderrString)
-		}
-		return core.Result{
-			Value: core.E("core.process.run", core.Concat("command failed: ", command), cause),
-			OK:    false,
+	runErr := cmd.Run()
+	timedOut := ctx.Err() == context.DeadlineExceeded
+	exitCode := 0
+	if runErr != nil {
+		exitCode = -1
+		if exitErr, ok := runErr.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
 		}
 	}
 
-	return core.Result{Value: stdout.String(), OK: true}
+	result := executionResult{
+		Command:  append([]string{command}, arguments...),
+		Stdout:   stdout.String(),
+		Stderr:   stderr.String(),
+		ExitCode: exitCode,
+		TimedOut: timedOut,
+	}
+	if (runErr != nil || timedOut) && options.Check {
+		return result, processError(result, options.Timeout, runErr)
+	}
+	return result, nil
+}
+
+func (result executionResult) Map() map[string]any {
+	return map[string]any{
+		"command":   append([]string(nil), result.Command...),
+		"stdout":    result.Stdout,
+		"stderr":    result.Stderr,
+		"exit_code": result.ExitCode,
+		"timed_out": result.TimedOut,
+		"ok":        result.ExitCode == 0 && !result.TimedOut,
+	}
+}
+
+func processError(result executionResult, timeout time.Duration, cause error) error {
+	if result.TimedOut {
+		if timeout > 0 {
+			return fmt.Errorf("core.process: command timed out after %s: %s", timeout, strings.Join(result.Command, " "))
+		}
+		return fmt.Errorf("core.process: command timed out: %s", strings.Join(result.Command, " "))
+	}
+	if stderr := strings.TrimSpace(result.Stderr); stderr != "" {
+		first := strings.SplitN(stderr, "\n", 2)[0]
+		return fmt.Errorf("core.process: command exited with status %d: %s", result.ExitCode, first)
+	}
+	if cause != nil {
+		return fmt.Errorf("core.process: command exited with status %d: %w", result.ExitCode, cause)
+	}
+	return fmt.Errorf("core.process: command exited with status %d", result.ExitCode)
+}
+
+func applyKeywordArguments(options *executionOptions, functionName string, keywordArguments runtime.KeywordArguments, allowed ...string) error {
+	if len(keywordArguments) == 0 {
+		return nil
+	}
+
+	allowedSet := map[string]struct{}{}
+	for _, name := range allowed {
+		allowedSet[name] = struct{}{}
+	}
+	for name := range keywordArguments {
+		if _, ok := allowedSet[name]; !ok {
+			return fmt.Errorf("%s got unexpected keyword argument %q", functionName, name)
+		}
+	}
+
+	if value, ok := keywordArguments["directory"]; ok {
+		directory, valid := value.(string)
+		if !valid {
+			return fmt.Errorf("%s expected directory to be string, got %T", functionName, value)
+		}
+		options.Directory = directory
+	}
+	if value, ok := keywordArguments["env"]; ok {
+		env, err := envFromValue(value, functionName)
+		if err != nil {
+			return err
+		}
+		options.Env = env
+	}
+	if value, ok := keywordArguments["timeout"]; ok {
+		timeout, err := timeoutFromValue(value, functionName)
+		if err != nil {
+			return err
+		}
+		options.Timeout = timeout
+	}
+	if value, ok := keywordArguments["check"]; ok {
+		check, valid := value.(bool)
+		if !valid {
+			return fmt.Errorf("%s expected check to be bool, got %T", functionName, value)
+		}
+		options.Check = check
+	}
+	return nil
 }
 
 func commandArgs(arguments []any, commandIndex int, functionName string) (string, []string, error) {
@@ -136,6 +316,39 @@ func commandArgs(arguments []any, commandIndex int, functionName string) (string
 	}
 
 	return command, processArguments, nil
+}
+
+func timeoutFromValue(value any, functionName string) (time.Duration, error) {
+	switch typed := value.(type) {
+	case nil:
+		return 0, nil
+	case time.Duration:
+		if typed < 0 {
+			return 0, fmt.Errorf("%s expected non-negative timeout, got %s", functionName, typed)
+		}
+		return typed, nil
+	case int:
+		if typed < 0 {
+			return 0, fmt.Errorf("%s expected non-negative timeout, got %d", functionName, typed)
+		}
+		return time.Duration(typed) * time.Second, nil
+	case float64:
+		if typed < 0 {
+			return 0, fmt.Errorf("%s expected non-negative timeout, got %v", functionName, typed)
+		}
+		return time.Duration(typed * float64(time.Second)), nil
+	case string:
+		timeout, err := time.ParseDuration(typed)
+		if err != nil {
+			return 0, fmt.Errorf("%s expected timeout duration string: %w", functionName, err)
+		}
+		if timeout < 0 {
+			return 0, fmt.Errorf("%s expected non-negative timeout, got %s", functionName, timeout)
+		}
+		return timeout, nil
+	default:
+		return 0, fmt.Errorf("%s expected timeout to be seconds or duration string, got %T", functionName, value)
+	}
 }
 
 func envList(arguments []any, index int, functionName string) ([]string, error) {

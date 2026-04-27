@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"time"
 
 	"dappco.re/go/py/bindings/register"
 	corepyruntime "dappco.re/go/py/runtime"
+	"dappco.re/go/py/runtime/tier2"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -20,25 +24,32 @@ func main() {
 }
 
 func run(arguments []string) error {
+	return runWithIO(arguments, os.Stdout, os.Stderr)
+}
+
+func runWithIO(arguments []string, stdout io.Writer, stderr io.Writer) error {
 	if len(arguments) == 0 {
 		return usageError()
 	}
 
 	switch arguments[0] {
 	case "run":
-		return runScript(arguments[1:])
+		return runScript(arguments[1:], stdout, stderr)
 	case "modules":
-		return listModules(arguments[1:])
+		return listModules(arguments[1:], stdout, stderr)
+	case "tier2":
+		return runTier2(arguments[1:], stdout, stderr)
 	case "version":
-		return printVersion(arguments[1:])
+		return printVersion(arguments[1:], stdout)
 	default:
 		return usageError()
 	}
 }
 
-func runScript(arguments []string) error {
+func runScript(arguments []string, stdout io.Writer, stderr io.Writer) error {
 	flags := flag.NewFlagSet("corepy run", flag.ContinueOnError)
-	flags.SetOutput(os.Stderr)
+	flags.SetOutput(stderr)
+	backend := flags.String("backend", corepyruntime.BackendBootstrap, "runtime backend: bootstrap or gpython")
 	expression := flags.String("e", "", "execute source string")
 	if err := flags.Parse(arguments); err != nil {
 		return err
@@ -55,10 +66,10 @@ func runScript(arguments []string) error {
 		}
 		source = string(content)
 	default:
-		return fmt.Errorf("usage: corepy run [-e source] [file.py]")
+		return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-e source] [file.py]")
 	}
 
-	interpreter, err := newInterpreter()
+	interpreter, err := newInterpreter(*backend)
 	if err != nil {
 		return err
 	}
@@ -68,16 +79,22 @@ func runScript(arguments []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = os.Stdout.WriteString(output)
+	_, err = io.WriteString(stdout, output)
 	return err
 }
 
-func listModules(arguments []string) error {
-	if len(arguments) != 0 {
-		return fmt.Errorf("usage: corepy modules")
+func listModules(arguments []string, stdout io.Writer, stderr io.Writer) error {
+	flags := flag.NewFlagSet("corepy modules", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	backend := flags.String("backend", corepyruntime.BackendBootstrap, "runtime backend: bootstrap or gpython")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return fmt.Errorf("usage: corepy modules [-backend bootstrap|gpython]")
 	}
 
-	interpreter, err := newInterpreter()
+	interpreter, err := newInterpreter(*backend)
 	if err != nil {
 		return err
 	}
@@ -88,21 +105,93 @@ func listModules(arguments []string) error {
 		return fmt.Errorf("corepy modules: backend does not expose module listing")
 	}
 	for _, name := range lister.Modules() {
-		fmt.Println(name)
+		fmt.Fprintln(stdout, name)
 	}
 	return nil
 }
 
-func printVersion(arguments []string) error {
+func runTier2(arguments []string, stdout io.Writer, stderr io.Writer) error {
+	if len(arguments) == 0 {
+		return tier2UsageError()
+	}
+
+	switch arguments[0] {
+	case "run":
+		return runTier2Script(arguments[1:], stdout, stderr)
+	case "which":
+		return printTier2Python(arguments[1:], stdout, stderr)
+	default:
+		return tier2UsageError()
+	}
+}
+
+func runTier2Script(arguments []string, stdout io.Writer, stderr io.Writer) error {
+	flags := flag.NewFlagSet("corepy tier2 run", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	python := flags.String("python", "", "host Python executable")
+	timeout := flags.Duration("timeout", 0, "timeout, for example 10s or 250ms")
+	expression := flags.String("e", "", "execute source string")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+
+	var (
+		source   string
+		filename string
+	)
+	switch {
+	case strings.TrimSpace(*expression) != "":
+		source = *expression
+	case flags.NArg() == 1:
+		filename = flags.Arg(0)
+	default:
+		return fmt.Errorf("usage: corepy tier2 run [-python python3] [-timeout 10s] [-e source] [file.py]")
+	}
+
+	runner := tier2.NewRunner(tier2.Options{
+		Python:     *python,
+		PythonPath: localPythonPath(),
+		Timeout:    *timeout,
+		Stdout:     stdout,
+		Stderr:     stderr,
+	})
+	if source != "" {
+		_, err := runner.RunSource(context.Background(), source)
+		return err
+	}
+	_, err := runner.RunFile(context.Background(), filename)
+	return err
+}
+
+func printTier2Python(arguments []string, stdout io.Writer, stderr io.Writer) error {
+	flags := flag.NewFlagSet("corepy tier2 which", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	python := flags.String("python", "", "host Python executable")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return fmt.Errorf("usage: corepy tier2 which [-python python3]")
+	}
+
+	path, err := tier2.ResolvePython(*python)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(stdout, path)
+	return err
+}
+
+func printVersion(arguments []string, stdout io.Writer) error {
 	if len(arguments) != 0 {
 		return fmt.Errorf("usage: corepy version")
 	}
-	fmt.Printf("corepy %s backend=%s\n", version, corepyruntime.BackendBootstrap)
-	return nil
+	_, err := fmt.Fprintf(stdout, "corepy %s backend=%s tier2=cpython-subprocess\n", version, corepyruntime.BackendBootstrap)
+	return err
 }
 
-func newInterpreter() (corepyruntime.Interpreter, error) {
-	interpreter, err := corepyruntime.New(corepyruntime.Options{Backend: corepyruntime.BackendBootstrap})
+func newInterpreter(backend string) (corepyruntime.Interpreter, error) {
+	interpreter, err := corepyruntime.New(corepyruntime.Options{Backend: backend})
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +202,17 @@ func newInterpreter() (corepyruntime.Interpreter, error) {
 	return interpreter, nil
 }
 
+func localPythonPath() []string {
+	if path, ok := tier2.LocalPythonPath(""); ok {
+		return []string{path}
+	}
+	return nil
+}
+
 func usageError() error {
-	return fmt.Errorf("usage: corepy run [-e source] [file.py] | corepy modules | corepy version")
+	return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-e source] [file.py] | corepy modules [-backend bootstrap|gpython] | corepy tier2 run|which | corepy version")
+}
+
+func tier2UsageError() error {
+	return fmt.Errorf("usage: corepy tier2 run [-python python3] [-timeout %s] [-e source] [file.py] | corepy tier2 which [-python python3]", (10 * time.Second).String())
 }

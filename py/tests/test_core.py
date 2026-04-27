@@ -113,6 +113,18 @@ class CorePyTests(unittest.TestCase):
 
         output = process.run(sys.executable, "-c", "print('ok')")
         self.assertEqual(output.strip(), "ok")
+        result = process.run_result(
+            sys.executable,
+            "-c",
+            "import sys; print('out'); print('err', file=sys.stderr); sys.exit(3)",
+        )
+        self.assertEqual(result["stdout"].strip(), "out")
+        self.assertEqual(result["stderr"].strip(), "err")
+        self.assertEqual(result["exit_code"], 3)
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["timed_out"])
+        timeout = process.run_result(sys.executable, "-c", "import time; time.sleep(5)", timeout=0.1)
+        self.assertTrue(timeout["timed_out"])
         env_output = process.run_with_env(Path.cwd(), ["COREPY_MODE=test"], sys.executable, "-c", "import os; print(os.environ['COREPY_MODE'])")
         self.assertEqual(env_output.strip(), "test")
         self.assertTrue(process.exists())
