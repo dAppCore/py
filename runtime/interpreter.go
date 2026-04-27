@@ -12,6 +12,7 @@
 package runtime
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -53,6 +54,9 @@ type AttributeResolver = contract.AttributeResolver
 
 // ModuleReference is an imported module handle inside the bootstrap runtime.
 type ModuleReference = contract.ModuleReference
+
+// UnsupportedImportError reports a Tier 1 import that can be retried in Tier 2.
+type UnsupportedImportError = contract.UnsupportedImportError
 
 // Options selects a CorePy runtime backend and optional pre-registered modules.
 type Options struct {
@@ -111,4 +115,12 @@ func SplitKeywordArguments(arguments []any) ([]any, KeywordArguments) {
 		return append([]any(nil), arguments...), nil
 	}
 	return append([]any(nil), arguments[:len(arguments)-1]...), keywordArguments
+}
+
+// IsTier2FallbackCandidate reports whether an interpreter error is caused by a
+// missing Tier 1 import. Callers can use this to retry through the Tier 2
+// CPython subprocess runner.
+func IsTier2FallbackCandidate(err error) bool {
+	var importErr UnsupportedImportError
+	return errors.As(err, &importErr)
 }

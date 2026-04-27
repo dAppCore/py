@@ -12,6 +12,12 @@ different syntax surface.
 - `runtime/tier2/` contains the CPython subprocess runner used for the Tier 2
   escape hatch, with timeout, stdout/stderr streaming, and structured exit
   results.
+- Tier 1 registers small stdlib-shaped shadows for common imports
+  (`json`, `os`, `os.path`, `subprocess`, `logging`, `hashlib`, `base64`, and
+  `socket`) so gpython scripts can use familiar import names while still
+  calling Core-backed primitives.
+- `corepy run -tier2-fallback` retries scripts in Tier 2 CPython when Tier 1
+  reports an unsupported import, preserving the explicit two-tier boundary.
 - `bindings/` contains Go-backed bindings for the RFC v1 module surface:
   `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
   `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
@@ -34,7 +40,8 @@ different syntax surface.
 GOWORK=off go mod tidy
 GOWORK=off go vet ./...
 GOWORK=off go test ./...
-PYTHONPATH=py python3 -m unittest discover -s py/tests -v
+GOWORK=off go test -tags gpython ./...
+python3 -m unittest discover -s py/tests -v
 ```
 
 ## Layout

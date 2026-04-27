@@ -14,7 +14,7 @@ import (
 	"dappco.re/go/py/runtime/tier2"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -51,22 +51,29 @@ func runScript(arguments []string, stdout io.Writer, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	backend := flags.String("backend", corepyruntime.BackendBootstrap, "runtime backend: bootstrap or gpython")
 	expression := flags.String("e", "", "execute source string")
+	tier2Fallback := flags.Bool("tier2-fallback", false, "retry unsupported Tier 1 imports with Tier 2 CPython")
+	tier2Python := flags.String("python", "", "host Python executable for -tier2-fallback")
+	tier2Timeout := flags.Duration("timeout", 0, "Tier 2 fallback timeout, for example 10s or 250ms")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
 
-	var source string
+	var (
+		source   string
+		filename string
+	)
 	switch {
 	case strings.TrimSpace(*expression) != "":
 		source = *expression
 	case flags.NArg() == 1:
+		filename = flags.Arg(0)
 		content, err := os.ReadFile(flags.Arg(0))
 		if err != nil {
 			return fmt.Errorf("corepy run: read %s: %w", flags.Arg(0), err)
 		}
 		source = string(content)
 	default:
-		return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-e source] [file.py]")
+		return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-tier2-fallback] [-python python3] [-timeout 10s] [-e source] [file.py]")
 	}
 
 	interpreter, err := newInterpreter(*backend)
@@ -77,9 +84,28 @@ func runScript(arguments []string, stdout io.Writer, stderr io.Writer) error {
 
 	output, err := interpreter.Run(source)
 	if err != nil {
-		return err
+		if !*tier2Fallback || !corepyruntime.IsTier2FallbackCandidate(err) {
+			return err
+		}
+		return runTier2Fallback(filename, source, *tier2Python, *tier2Timeout, stdout, stderr)
 	}
 	_, err = io.WriteString(stdout, output)
+	return err
+}
+
+func runTier2Fallback(filename string, source string, python string, timeout time.Duration, stdout io.Writer, stderr io.Writer) error {
+	runner := tier2.NewRunner(tier2.Options{
+		Python:     python,
+		PythonPath: localPythonPath(),
+		Timeout:    timeout,
+		Stdout:     stdout,
+		Stderr:     stderr,
+	})
+	if filename != "" {
+		_, err := runner.RunFile(context.Background(), filename)
+		return err
+	}
+	_, err := runner.RunSource(context.Background(), source)
 	return err
 }
 
@@ -210,7 +236,7 @@ func localPythonPath() []string {
 }
 
 func usageError() error {
-	return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-e source] [file.py] | corepy modules [-backend bootstrap|gpython] | corepy tier2 run|which | corepy version")
+	return fmt.Errorf("usage: corepy run [-backend bootstrap|gpython] [-tier2-fallback] [-python python3] [-timeout 10s] [-e source] [file.py] | corepy modules [-backend bootstrap|gpython] | corepy tier2 run|which | corepy version")
 }
 
 func tier2UsageError() error {

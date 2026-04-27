@@ -28,6 +28,7 @@ import (
 	registrybinding "dappco.re/go/py/bindings/registry"
 	scmbinding "dappco.re/go/py/bindings/scm"
 	"dappco.re/go/py/bindings/service"
+	stdlibbinding "dappco.re/go/py/bindings/stdlib"
 	"dappco.re/go/py/bindings/store"
 	stringsbinding "dappco.re/go/py/bindings/strings"
 	taskbinding "dappco.re/go/py/bindings/task"
@@ -88,11 +89,37 @@ func DefaultModuleNames() []string {
 	return names
 }
 
+// DefaultShadowModuleSpecs returns Python stdlib-shaped aliases that Tier 1
+// resolves to Core-backed primitives.
+func DefaultShadowModuleSpecs() []ModuleSpec {
+	stdlibSpecs := stdlibbinding.Specs()
+	specs := make([]ModuleSpec, 0, len(stdlibSpecs))
+	for _, spec := range stdlibSpecs {
+		specs = append(specs, ModuleSpec{Name: spec.Name, Register: spec.Register})
+	}
+	return specs
+}
+
+// DefaultShadowModuleNames returns the canonical stdlib shadow names.
+func DefaultShadowModuleNames() []string {
+	specs := DefaultShadowModuleSpecs()
+	names := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		names = append(names, spec.Name)
+	}
+	return names
+}
+
 // DefaultModules registers the bootstrap CorePy module set.
 //
 //	register.DefaultModules(interpreter)
 func DefaultModules(interpreter runtime.Interpreter) error {
 	for _, spec := range DefaultModuleSpecs() {
+		if err := spec.Register(interpreter); err != nil {
+			return err
+		}
+	}
+	for _, spec := range DefaultShadowModuleSpecs() {
 		if err := spec.Register(interpreter); err != nil {
 			return err
 		}

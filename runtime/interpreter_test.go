@@ -157,6 +157,25 @@ func TestRegister_DefaultModuleCatalog_Good(t *testing.T) {
 	}
 }
 
+func TestRegister_DefaultShadowModuleCatalog_Good(t *testing.T) {
+	names := register.DefaultShadowModuleNames()
+	seen := map[string]struct{}{}
+	for _, name := range names {
+		if strings.HasPrefix(name, "core.") {
+			t.Fatalf("stdlib shadow module should not use core.* name: %q", name)
+		}
+		if _, ok := seen[name]; ok {
+			t.Fatalf("duplicate shadow module name %q", name)
+		}
+		seen[name] = struct{}{}
+	}
+	for _, required := range []string{"os", "os.path", "json", "subprocess", "logging", "hashlib", "base64", "socket"} {
+		if _, ok := seen[required]; !ok {
+			t.Fatalf("shadow catalog missing %s in %#v", required, names)
+		}
+	}
+}
+
 func TestInterpreter_Run_EchoRoundTrip_Good(t *testing.T) {
 	interpreter := newTestInterpreter(t)
 
@@ -219,6 +238,84 @@ print(filesystem.read_file(%q))
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if !reflect.DeepEqual(lines, []string{"hello", "hello"}) {
 		t.Fatalf("unexpected output lines %#v", lines)
+	}
+}
+
+func TestInterpreter_Run_StdlibShadowImports_Good(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	goBinary, err := exec.LookPath("go")
+	if err != nil {
+		t.Fatalf("find go binary: %v", err)
+	}
+
+	script := fmt.Sprintf(`
+import base64
+import hashlib
+import json
+import os
+import socket
+import subprocess
+payload = json.loads('{"name":"corepy"}')
+print(json.dumps(payload))
+print(os.path.basename(os.path.join("tmp", "corepy.json")))
+print(os.getenv("COREPY_MISSING", "fallback"))
+print(socket.getservbyname("http", "tcp"))
+print(base64.b64encode("hello"))
+digest = hashlib.sha256("hello")
+print(digest.hexdigest())
+print(subprocess.check_output([%q, "env", "GOOS"]))
+`, goBinary)
+
+	output, err := interpreter.Run(script)
+	if err != nil {
+		t.Fatalf("run stdlib shadow imports: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	expectedPrefix := []string{
+		`{"name":"corepy"}`,
+		"corepy.json",
+		"fallback",
+		"80",
+		"aGVsbG8=",
+		"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+	}
+	if len(lines) != len(expectedPrefix)+1 {
+		t.Fatalf("unexpected output lines %#v", lines)
+	}
+	if !reflect.DeepEqual(lines[:len(expectedPrefix)], expectedPrefix) {
+		t.Fatalf("unexpected stdlib output lines %#v", lines)
+	}
+	if lines[len(lines)-1] != goruntime.GOOS {
+		t.Fatalf("unexpected subprocess output %q", lines[len(lines)-1])
+	}
+}
+
+func TestInterpreter_Run_UnsupportedImportFallbackCandidate_Bad(t *testing.T) {
+	interpreter := newTestInterpreter(t)
+
+	_, err := interpreter.Run(`import sys; print("needs tier2")`)
+	if err == nil {
+		t.Fatal("expected unsupported import")
+	}
+	if !corepyruntime.IsTier2FallbackCandidate(err) {
+		t.Fatalf("expected Tier 2 fallback candidate, got %T: %v", err, err)
+	}
+	var importErr corepyruntime.UnsupportedImportError
+	if !errors.As(err, &importErr) {
+		t.Fatalf("expected UnsupportedImportError, got %T: %v", err, err)
+	}
+	if importErr.Module != "sys" {
+		t.Fatalf("unexpected unsupported module %#v", importErr)
+	}
+
+	_, err = interpreter.Run(`from os import environ`)
+	if err == nil {
+		t.Fatal("expected unsupported shadow export")
+	}
+	if !corepyruntime.IsTier2FallbackCandidate(err) {
+		t.Fatalf("expected stdlib shadow export to be a Tier 2 fallback candidate, got %T: %v", err, err)
 	}
 }
 

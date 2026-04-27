@@ -41,6 +41,7 @@ type KeywordArguments = contract.KeywordArguments
 type BoundMethod = contract.BoundMethod
 type AttributeResolver = contract.AttributeResolver
 type ModuleReference = contract.ModuleReference
+type UnsupportedImportError = contract.UnsupportedImportError
 
 // Interpreter executes a small Python subset against registered modules.
 type Interpreter struct {
@@ -212,7 +213,7 @@ func (interpreter *Interpreter) executeDirectImport(line string, namespace map[s
 			return err
 		}
 		if _, ok := interpreter.modules[moduleName]; !ok {
-			return fmt.Errorf("module %q is not registered", moduleName)
+			return UnsupportedImportError{Module: moduleName}
 		}
 
 		if hasAlias {
@@ -238,7 +239,7 @@ func (interpreter *Interpreter) executeImport(line string, namespace map[string]
 		return fmt.Errorf("import module cannot be empty")
 	}
 	if _, ok := interpreter.modules[moduleName]; !ok {
-		return fmt.Errorf("module %q is not registered", moduleName)
+		return UnsupportedImportError{Module: moduleName}
 	}
 
 	for _, rawName := range strings.Split(parts[1], ",") {
@@ -266,6 +267,9 @@ func (interpreter *Interpreter) resolveImport(moduleName, name string) (any, err
 		return ModuleReference{Name: childName}, nil
 	}
 
+	if moduleName != "core" && !strings.HasPrefix(moduleName, "core.") {
+		return nil, UnsupportedImportError{Module: childName}
+	}
 	return nil, fmt.Errorf("module %q does not export %q", moduleName, name)
 }
 

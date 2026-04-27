@@ -21,6 +21,36 @@ func TestRun_RunExpression_Good(t *testing.T) {
 	}
 }
 
+func TestRun_RunExpressionTier2Fallback_Good(t *testing.T) {
+	requireTier2Python(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := runWithIO([]string{"run", "-tier2-fallback", "-e", `import sys; from core import echo; print(echo("tier2"), sys.version_info[0])`}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("run expression with tier2 fallback: %v stderr=%q", err, stderr.String())
+	}
+	if strings.TrimSpace(stdout.String()) != "tier2 3" {
+		t.Fatalf("unexpected stdout %q", stdout.String())
+	}
+}
+
+func TestRun_RunExpressionNoFallback_Bad(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := runWithIO([]string{"run", "-e", `import sys; print("tier2")`}, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("expected unsupported import without fallback")
+	}
+	if !strings.Contains(err.Error(), "unsupported import sys") {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if stdout.String() != "" {
+		t.Fatalf("expected no stdout, got %q", stdout.String())
+	}
+}
+
 func TestRun_Modules_Good(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

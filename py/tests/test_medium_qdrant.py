@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import sys
 import unittest
 from urllib import error as url_error
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from core import medium
 

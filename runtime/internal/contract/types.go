@@ -73,3 +73,16 @@ type AttributeResolver interface {
 type ModuleReference struct {
 	Name string
 }
+
+// UnsupportedImportError reports an import that the selected Tier 1 backend
+// cannot satisfy from its registered module table.
+type UnsupportedImportError struct {
+	Module string
+}
+
+func (err UnsupportedImportError) Error() string {
+	if err.Module == "" {
+		return "unsupported import"
+	}
+	return "unsupported import " + err.Module
+}

@@ -1,9 +1,9 @@
 # gpython Readiness Audit
 
-Pass 3 audit for swapping the bootstrap interpreter to the planned
+Pass 4 audit for swapping the bootstrap interpreter to the planned
 `LetheanNetwork/gpython` backend without rewriting primitive bindings.
 
-## Pass 3 Boundary
+## Pass 4 Boundary
 
 The public runtime selector now routes `Options{Backend: "gpython"}` through a
 build-tagged factory:
@@ -18,6 +18,19 @@ build-tagged factory:
 
 This keeps the gpython integration boundary testable without making the default
 build depend on a fork that is not vendored here yet.
+
+Pass 4 adds two pieces that should survive the real gpython swap:
+
+- stdlib-shaped shadow modules for `json`, `os`, `os.path`, `subprocess`,
+  `logging`, `hashlib`, `base64`, and `socket`; these are registered beside
+  `core.*` modules and route common Python imports to Core-backed primitives
+- a typed unsupported-import error that the CLI can use for
+  `corepy run -tier2-fallback`, retrying the script in Tier 2 CPython only when
+  Tier 1 cannot satisfy the import table
+
+The real gpython backend should preserve that import policy: first try native
+Tier 1 Core/shadow modules, then surface unsupported imports as fallback
+eligible instead of mixing implicit CPython execution into the interpreter.
 
 ## Audit Basis
 
@@ -88,6 +101,19 @@ blocked by an absent gpython feature.
 | `strings` | READY | String/list/int helpers; no persistent handles. |
 | `task` | NEEDS-ADAPTATION | Uses task handles and action registry integration. Needs handle wrappers and callable bridge parity with `action`. |
 | `ws` | READY | Stub exposes `available() -> bool`; no handle or keyword behavior. |
+
+## Stdlib Shadow Audit
+
+| Import | Tier 1 backing | Coverage |
+|---|---|---|
+| `json` | `core.JSONMarshalString` / `core.JSONUnmarshalString` | `dumps`, `loads` |
+| `os` | Go `os` plus Core path/process conventions | `getcwd`, `getenv`, `listdir`, `makedirs`, `remove`, `system` |
+| `os.path` | Go filepath/Core path semantics | `abspath`, `basename`, `dirname`, `exists`, `isabs`, `join` |
+| `subprocess` | Go `os/exec`, matching `core.process` result shape | `check_output`, `getoutput`, `run` |
+| `logging` | Core log functions | `basicConfig`, `debug`, `info`, `warning`, `error` |
+| `hashlib` | Go crypto hashes | `sha1`, `sha256`, `hexdigest` handles |
+| `base64` | Go base64 codec | `b64encode`, `b64decode` |
+| `socket` | Go `net` DNS/service lookup | `gethostbyname`, `gethostbyname_ex`, `getservbyname` |
 
 ## Estimated Lift
 
