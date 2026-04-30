@@ -1,9 +1,9 @@
 [project]
-name = "core"
+name = "core-tier2-stub"
 version = "0.2.0"
-description = "Python binding for Core primitives — bootstrap Tier 1 runtime plus CPython package surface"
+description = "CorePy Tier 2 gopy build scaffold"
 license = { text = "EUPL-1.2" }
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [
     { name = "Lethean CIC" }
 ]
@@ -14,3 +14,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["core"]
+include = ["_build_stub.py"]

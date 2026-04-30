@@ -1,30 +1,61 @@
 # core/py — Python Binding for Core Primitives
 
-The fourth corner of the polyglot primitive stack. Python code imports `core` the
-way Go code imports `core/go`. Same primitives, same shape, same tests, different
-syntax surface.
+The fourth corner of the polyglot primitive stack. Python code imports `core`
+the way Go code imports `core/go`: same primitive names, same import paths,
+different syntax surface.
 
-Two tiers:
+## Current Implementation
 
-- **Tier 1 (gpython-embedded):** ships inside any CoreGO binary that imports
-  `dappco.re/go/py`. Pure-Go Python interpreter, no host CPython required.
-- **Tier 2 (CPython-via-uv):** managed CPython subprocess for code that needs
-  C extensions or 3.14 features beyond gpython's coverage.
+- `runtime/` contains a bootstrap Tier 1 interpreter that validates the CorePy
+  module contract, import shape, and Python-style list/dict type mapping
+  without waiting on the gpython dependency.
+- `runtime/tier2/` contains the CPython subprocess runner used for the Tier 2
+  escape hatch, with timeout, stdout/stderr streaming, and structured exit
+  results.
+- Tier 1 registers small stdlib-shaped shadows for common imports
+  (`json`, `os`, `os.path`, `subprocess`, `logging`, `hashlib`, `base64`, and
+  `socket`) so gpython scripts can use familiar import names while still
+  calling Core-backed primitives.
+- `corepy run -tier2-fallback` retries scripts in Tier 2 CPython when Tier 1
+  reports an unsupported import, preserving the explicit two-tier boundary.
+- `corepy repl` opens a stateful Tier 1 line session for quick primitive
+  experiments without leaving the CorePy runtime.
+- `bindings/` contains Go-backed bindings for the RFC v1 module surface:
+  `core.echo`, `core.fs`, `core.json`, `core.medium`, `core.options`,
+  `core.path`, `core.process`, `core.config`, `core.data`, `core.service`,
+  `core.log`, `core.err`, `core.strings`, `core.array`, `core.registry`,
+  `core.info`, `core.entitlement`, `core.action`, `core.task`, `core.i18n`,
+  the first `core.math` surface, plus initial RFC coverage for `core.cache`,
+  `core.crypto`, `core.dns`, and `core.scm`, and importable planned stubs for
+  `core.api`, `core.ws`, `core.store`, `core.container`, `core.agent`, and
+  `core.mcp`
+  (`mean`, `median`, `variance`, `stdev`, sorting, scaling, signal helpers,
+  and the `core.math.kdtree` / `core.math.knn` / `core.math.signal`
+  import paths).
+- `py/core/` contains the Python package surface for the RFC v1 modules,
+  including docstrings, concrete fallbacks for CPython validation, and
+  module-level helpers that mirror the Tier 1 binding shape.
+
+## Validation
+
+```bash
+GOWORK=off go mod tidy
+GOWORK=off go vet ./...
+GOWORK=off go test ./...
+GOWORK=off go test -tags gpython ./...
+python3 -m unittest discover -s py/tests -v
+```
 
 ## Layout
 
 | Path | Purpose |
 |------|---------|
-| `bindings/` | Go-side primitive bindings (fs, json, medium, options, process, service, math, typemap) |
-| `runtime/` | gpython host integration |
-| `py/core/` | Python-side package (installable via uv) |
-| `py/tests/` | Python test suite |
-| `examples/` | Polyglot example programs |
+| `bindings/` | Go-side primitive bindings and type conversion helpers |
+| `runtime/` | Tier 1 bootstrap interpreter and integration tests |
+| `py/core/` | Python package surface for `core.*` modules |
+| `py/tests/` | Python package validation |
+| `examples/` | Example CorePy programs |
 
 ## Spec
 
-`plans/code/core/py/RFC.md` in the spec tree — read first.
-
-## Status
-
-Bootstrap. Empty skeleton ready for factory dispatches.
+`/home/claude/Code/core/plans/code/core/py/RFC.md`
