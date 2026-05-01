@@ -277,7 +277,7 @@ func newInterpreter(backend string) (corepyruntime.Interpreter, error) {
 		return nil, err
 	}
 	if err := register.DefaultModules(interpreter); err != nil {
-		_ = interpreter.Close()
+		if cerr := interpreter.Close(); cerr != nil { _ = cerr }
 		return nil, err
 	}
 	return interpreter, nil
