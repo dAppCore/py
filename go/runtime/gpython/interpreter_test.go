@@ -1,3 +1,5 @@
+//go:build gpython
+
 package gpython
 
 import (

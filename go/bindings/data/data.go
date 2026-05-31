@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings" // AX-6-exception: bootstrap data path normalization keeps stdlib contains until the binding is gpython-native.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
