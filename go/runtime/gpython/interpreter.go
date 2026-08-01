@@ -28,7 +28,9 @@ func New(modules []contract.Module) (*Interpreter, error) {
 	delegate := bootstrap.New()
 	for _, module := range modules {
 		if err := delegate.RegisterModule(module); err != nil {
-			_ = delegate.Close()
+			if cerr := delegate.Close(); cerr != nil {
+				_ = cerr
+			}
 			return nil, err
 		}
 	}

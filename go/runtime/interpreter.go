@@ -96,7 +96,9 @@ func New(opts Options) (Interpreter, error) {
 		interpreter := bootstrap.New()
 		for _, module := range opts.Modules {
 			if err := interpreter.RegisterModule(module); err != nil {
-				_ = interpreter.Close()
+				if cerr := interpreter.Close(); cerr != nil {
+					_ = cerr
+				}
 				return nil, err
 			}
 		}
