@@ -89,7 +89,7 @@ func status(arguments ...any) (any, error) {
 	}
 
 	lines := []string{}
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		trimmed := strings.TrimRight(line, "\r")
 		if strings.TrimSpace(trimmed) == "" {
 			continue
@@ -120,7 +120,7 @@ func trackedFiles(arguments ...any) (any, error) {
 		return nil, err
 	}
 	files := []string{}
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue

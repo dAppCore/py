@@ -2,8 +2,9 @@ package task
 
 import (
 	"fmt" // AX-6-exception: task bootstrap validation reports dynamic Go types and action names.
+	"maps"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	actionbinding "dappco.re/go/py/bindings/action"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
@@ -337,9 +338,7 @@ func cloneMap(values map[string]any) map[string]any {
 		return map[string]any{}
 	}
 	cloned := make(map[string]any, len(values))
-	for key, value := range values {
-		cloned[key] = value
-	}
+	maps.Copy(cloned, values)
 	return cloned
 }
 

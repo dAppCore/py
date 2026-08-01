@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
@@ -42,7 +42,7 @@ type executionResult struct {
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.process",
-		Documentation: "Process helpers backed by dappco.re/go/core",
+		Documentation: "Process helpers backed by dappco.re/go",
 		Functions: map[string]runtime.Function{
 			"run":          run,
 			"run_in":       runIn,

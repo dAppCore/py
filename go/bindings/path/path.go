@@ -1,18 +1,18 @@
 package pathbinding
 
 import (
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
 
-// Register exposes path helpers backed by dappco.re/go/core.
+// Register exposes path helpers backed by dappco.re/go.
 //
 //	pathbinding.Register(interpreter)
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.path",
-		Documentation: "Path helpers backed by dappco.re/go/core",
+		Documentation: "Path helpers backed by dappco.re/go",
 		Functions: map[string]runtime.Function{
 			"join":   join,
 			"base":   base,

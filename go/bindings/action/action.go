@@ -4,7 +4,7 @@ import (
 	"fmt" // AX-6-exception: reflection-backed bootstrap call diagnostics need formatted type output.
 	"reflect"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
@@ -212,7 +212,7 @@ func RunHandle(item *Handle, options map[string]any) (any, error) {
 		argumentType := handlerType.In(0)
 		if argumentType.Kind() == reflect.Interface {
 			callArguments = append(callArguments, reflect.ValueOf(options))
-		} else if reflect.TypeOf(options).AssignableTo(argumentType) {
+		} else if reflect.TypeFor[map[string]any]().AssignableTo(argumentType) {
 			callArguments = append(callArguments, reflect.ValueOf(options))
 		} else {
 			return nil, fmt.Errorf("action handler parameter is not supported: %s", argumentType)

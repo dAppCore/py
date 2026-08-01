@@ -6,18 +6,18 @@ import (
 	"sort"
 	"strings" // AX-6-exception: bootstrap data path normalization keeps stdlib contains until the binding is gpython-native.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
 
-// Register exposes Data bindings backed by dappco.re/go/core.
+// Register exposes Data bindings backed by dappco.re/go.
 //
 //	data.Register(interpreter)
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.data",
-		Documentation: "Embedded content registry backed by dappco.re/go/core",
+		Documentation: "Embedded content registry backed by dappco.re/go",
 		Functions: map[string]runtime.Function{
 			"new":         newData,
 			"mount":       mountPath,

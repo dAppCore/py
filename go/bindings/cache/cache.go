@@ -387,7 +387,7 @@ func normalizedParts(value string, allowEmpty bool, fieldName string) ([]string,
 	}
 
 	parts := []string{}
-	for _, part := range strings.Split(text, "/") {
+	for part := range strings.SplitSeq(text, "/") {
 		if part == "" || part == "." {
 			continue
 		}

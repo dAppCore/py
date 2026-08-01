@@ -1,18 +1,18 @@
 package err
 
 import (
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
 
-// Register exposes error helpers backed by dappco.re/go/core.
+// Register exposes error helpers backed by dappco.re/go.
 //
 //	err.Register(interpreter)
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.err",
-		Documentation: "Structured errors backed by dappco.re/go/core",
+		Documentation: "Structured errors backed by dappco.re/go",
 		Functions: map[string]runtime.Function{
 			"e":          e,
 			"wrap":       wrap,

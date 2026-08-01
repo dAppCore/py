@@ -226,7 +226,7 @@ func (interpreter *Interpreter) executeDirectImport(line string, namespace map[s
 		return fmt.Errorf("import module cannot be empty")
 	}
 
-	for _, rawTarget := range strings.Split(body, ",") {
+	for rawTarget := range strings.SplitSeq(body, ",") {
 		moduleName, bindingName, hasAlias, err := parseImportBinding(rawTarget)
 		if err != nil {
 			return err
@@ -261,7 +261,7 @@ func (interpreter *Interpreter) executeImport(line string, namespace map[string]
 		return UnsupportedImportError{Module: moduleName}
 	}
 
-	for _, rawName := range strings.Split(parts[1], ",") {
+	for rawName := range strings.SplitSeq(parts[1], ",") {
 		name, bindingName, _, err := parseImportBinding(rawName)
 		if err != nil {
 			return err

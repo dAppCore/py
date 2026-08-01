@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/register"
 	corepyruntime "dappco.re/go/py/runtime"
 )
@@ -627,11 +627,11 @@ func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list services: %v", err)
 	}
+	// core.New() carries no built-in services by default — "cli" is
+	// opt-in via core.WithCli() (dappco.re/go v0.12.0, core.go/contract.go)
+	// — so the only guaranteed entry here is the one just registered.
 	names := serviceNames.([]string)
-	if len(names) == 0 || names[0] != "cli" {
-		t.Fatalf("expected built-in cli service first, got %#v", names)
-	}
-	if names[len(names)-1] != "brain" {
+	if len(names) == 0 || names[len(names)-1] != "brain" {
 		t.Fatalf("expected registered service in names, got %#v", names)
 	}
 }

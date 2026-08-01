@@ -3,7 +3,7 @@ package entitlement
 import (
 	"fmt" // AX-6-exception: entitlement bootstrap validation reports dynamic Go types.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/runtime"
 )
 

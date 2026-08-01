@@ -238,8 +238,8 @@ func firstLine(value string) string {
 	if value == "" {
 		return ""
 	}
-	if index := strings.IndexByte(value, '\n'); index != -1 {
-		return strings.TrimSpace(value[:index])
+	if before, _, ok := strings.Cut(value, "\n"); ok {
+		return strings.TrimSpace(before)
 	}
 	return value
 }

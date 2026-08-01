@@ -290,10 +290,7 @@ func movingAverage(arguments ...any) (any, error) {
 			total -= values[index-window]
 		}
 
-		sampleCount := index + 1
-		if sampleCount > window {
-			sampleCount = window
-		}
+		sampleCount := min(index+1, window)
 		result = append(result, total/float64(sampleCount))
 	}
 	return result, nil

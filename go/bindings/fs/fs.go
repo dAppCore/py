@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath" // AX-6-exception: byte-write helper needs parent directory resolution for local files.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )
@@ -15,7 +15,7 @@ import (
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.fs",
-		Documentation: "Filesystem primitives backed by dappco.re/go/core",
+		Documentation: "Filesystem primitives backed by dappco.re/go",
 		Functions: map[string]runtime.Function{
 			"read_file":   readFile,
 			"read_bytes":  readBytes,
@@ -102,7 +102,7 @@ func tempDir(arguments ...any) (any, error) {
 			return nil, err
 		}
 	}
-	return filesystem().TempDir(prefix), nil
+	return typemap.ResultValue(filesystem().TempDir(prefix), "core.fs.temp_dir")
 }
 
 func filesystem() *core.Fs {
