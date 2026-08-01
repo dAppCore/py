@@ -3,7 +3,7 @@ package log
 import (
 	"fmt" // AX-6-exception: log level parser reports unsupported level names during bootstrap.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )

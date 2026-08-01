@@ -4,7 +4,7 @@ import (
 	"fmt" // AX-6-exception: reflection-backed bootstrap call diagnostics need formatted type output.
 	"reflect"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )

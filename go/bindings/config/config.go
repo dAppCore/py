@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings" // AX-6-exception: environment key normalization uses Replacer until core exposes equivalent composition.
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/typemap"
 	"dappco.re/go/py/runtime"
 )

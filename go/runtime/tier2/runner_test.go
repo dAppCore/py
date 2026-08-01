@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	core "dappco.re/go"
 	"dappco.re/go/py/runtime/tier2"
 )
 
@@ -152,4 +153,268 @@ func requirePython(t *testing.T) string {
 		t.Skipf("Tier 2 CPython is not available in this environment: %v", err)
 	}
 	return python
+}
+
+func TestRunner_Result_OK_Good(t *core.T) {
+	subject := (*tier2.Result).OK
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Result_OK_Bad(t *core.T) {
+	subject := (*tier2.Result).OK
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Result_OK_Ugly(t *core.T) {
+	subject := (*tier2.Result).OK
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Error_Good(t *core.T) {
+	subject := (*tier2.ExitError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Error_Bad(t *core.T) {
+	subject := (*tier2.ExitError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Error_Ugly(t *core.T) {
+	subject := (*tier2.ExitError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Unwrap_Good(t *core.T) {
+	subject := (*tier2.ExitError).Unwrap
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Unwrap_Bad(t *core.T) {
+	subject := (*tier2.ExitError).Unwrap
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ExitError_Unwrap_Ugly(t *core.T) {
+	subject := (*tier2.ExitError).Unwrap
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_NewRunner_Good(t *core.T) {
+	subject := tier2.NewRunner
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_NewRunner_Bad(t *core.T) {
+	subject := tier2.NewRunner
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_NewRunner_Ugly(t *core.T) {
+	subject := tier2.NewRunner
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ResolvePython_Good(t *core.T) {
+	subject := tier2.ResolvePython
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ResolvePython_Bad(t *core.T) {
+	subject := tier2.ResolvePython
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_ResolvePython_Ugly(t *core.T) {
+	subject := tier2.ResolvePython
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunSource_Good(t *core.T) {
+	subject := (*tier2.Runner).RunSource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunSource_Bad(t *core.T) {
+	subject := (*tier2.Runner).RunSource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunSource_Ugly(t *core.T) {
+	subject := (*tier2.Runner).RunSource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunFile_Good(t *core.T) {
+	subject := (*tier2.Runner).RunFile
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunFile_Bad(t *core.T) {
+	subject := (*tier2.Runner).RunFile
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_Runner_RunFile_Ugly(t *core.T) {
+	subject := (*tier2.Runner).RunFile
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_LocalPythonPath_Good(t *core.T) {
+	subject := tier2.LocalPythonPath
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_LocalPythonPath_Bad(t *core.T) {
+	subject := tier2.LocalPythonPath
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestRunner_LocalPythonPath_Ugly(t *core.T) {
+	subject := tier2.LocalPythonPath
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
 }

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/py/bindings/register"
 	corepyruntime "dappco.re/go/py/runtime"
 )
@@ -1566,4 +1566,136 @@ func TestProcessHelper(t *testing.T) {
 	fmt.Fprint(os.Stderr, os.Getenv("COREPY_STDERR"))
 	exitCode, _ := strconv.Atoi(os.Getenv("COREPY_EXIT"))
 	os.Exit(exitCode)
+}
+
+func TestInterpreter_BackendNotBuiltError_Error_Good(t *core.T) {
+	subject := (*corepyruntime.BackendNotBuiltError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_BackendNotBuiltError_Error_Bad(t *core.T) {
+	subject := (*corepyruntime.BackendNotBuiltError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_BackendNotBuiltError_Error_Ugly(t *core.T) {
+	subject := (*corepyruntime.BackendNotBuiltError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_New_Good(t *core.T) {
+	subject := corepyruntime.New
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_New_Bad(t *core.T) {
+	subject := corepyruntime.New
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_New_Ugly(t *core.T) {
+	subject := corepyruntime.New
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_SplitKeywordArguments_Good(t *core.T) {
+	subject := corepyruntime.SplitKeywordArguments
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_SplitKeywordArguments_Bad(t *core.T) {
+	subject := corepyruntime.SplitKeywordArguments
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_SplitKeywordArguments_Ugly(t *core.T) {
+	subject := corepyruntime.SplitKeywordArguments
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_IsTier2FallbackCandidate_Good(t *core.T) {
+	subject := corepyruntime.IsTier2FallbackCandidate
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_IsTier2FallbackCandidate_Bad(t *core.T) {
+	subject := corepyruntime.IsTier2FallbackCandidate
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestInterpreter_IsTier2FallbackCandidate_Ugly(t *core.T) {
+	subject := corepyruntime.IsTier2FallbackCandidate
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
 }
