@@ -2,7 +2,7 @@
 
 ## Repo Overview
 
-- Module: `dappco.re/go/py`
+- Module: `github.com/dappcore/py/go`
 - Purpose: Python binding for Core primitives, with a Go-backed Tier 1 bootstrap runtime and a CPython package surface under `py/core/`.
 - Main surfaces: `bindings/`, `runtime/`, `py/core/`, `py/tests/`, and `examples/`.
 
@@ -42,7 +42,7 @@
 - Prefer example-driven doc comments and docstrings where the surrounding file already uses them.
 - Keep the Python package typed and consistent with the `pyproject.toml` target of Python 3.12+.
 - Avoid unrelated renames, formatting-only churn, and comment rewrites.
-- Leave the local `replace dappco.re/go/core => ../go` setup in `go.mod` alone unless the task explicitly requires changing dependency wiring.
+- Leave the local `replace github.com/dappcore/go => ../go` setup in `go.mod` alone unless the task explicitly requires changing dependency wiring.
 
 ## Testing
 

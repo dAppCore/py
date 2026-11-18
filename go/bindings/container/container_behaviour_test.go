@@ -1,8 +1,8 @@
 package container
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newContainerInterpreter registers the container module against a fresh

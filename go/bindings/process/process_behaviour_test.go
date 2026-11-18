@@ -1,8 +1,8 @@
 package process
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newProcessInterpreter registers the process module against a fresh bootstrap

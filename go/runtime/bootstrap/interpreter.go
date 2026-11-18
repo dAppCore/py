@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings" // AX-6-exception: bootstrap parser needs tokenizer helpers beyond the current core string wrapper set.
 
-	"dappco.re/go/py/runtime/internal/contract"
+	"github.com/dappcore/py/go/runtime/internal/contract"
 )
 
 type Module = contract.Module

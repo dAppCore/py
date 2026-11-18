@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newDataInterpreter registers the data module against a fresh bootstrap

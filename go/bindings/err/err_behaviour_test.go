@@ -1,8 +1,8 @@
 package err
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newErrInterpreter registers the err module against a fresh bootstrap

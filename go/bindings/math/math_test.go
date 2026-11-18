@@ -1,7 +1,7 @@
 package mathbinding
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMath_Register_Good(t *core.T) {

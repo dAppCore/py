@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/py/bindings/register"
-	corepyruntime "dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/bindings/register"
+	corepyruntime "github.com/dappcore/py/go/runtime"
 )
 
 func TestGPythonBackend_StdlibShadowRoundTrip_Good(t *testing.T) {

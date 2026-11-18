@@ -1,6 +1,6 @@
 package mcp
 
-import "dappco.re/go/py/runtime"
+import "github.com/dappcore/py/go/runtime"
 
 // Register exposes the planned MCP module surface.
 //

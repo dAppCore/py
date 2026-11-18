@@ -1,6 +1,6 @@
 package echo
 
-import "dappco.re/go/py/runtime"
+import "github.com/dappcore/py/go/runtime"
 
 // Register exposes the bootstrap `core.echo` round-trip.
 //

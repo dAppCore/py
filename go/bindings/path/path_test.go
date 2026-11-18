@@ -1,7 +1,7 @@
 package pathbinding
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestPath_Register_Good(t *core.T) {

@@ -4,8 +4,8 @@ import (
 	"net"
 	"slices"
 
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // Register exposes DNS resolution helpers.

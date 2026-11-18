@@ -1,8 +1,8 @@
 package service
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newServiceInterpreter registers the service module against a fresh bootstrap

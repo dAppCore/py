@@ -1,7 +1,7 @@
 package i18n
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestI18n_Register_Good(t *core.T) {

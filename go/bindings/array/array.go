@@ -4,7 +4,7 @@ import (
 	"fmt" // AX-6-exception: bootstrap handle validation reports dynamic Go types.
 	"reflect"
 
-	"dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/runtime"
 )
 
 type handle struct {

@@ -1,8 +1,8 @@
 package config
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newConfigInterpreter registers the config module against a fresh bootstrap

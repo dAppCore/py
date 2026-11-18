@@ -1,9 +1,9 @@
 package options
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // Register exposes Core Options bindings.
@@ -12,7 +12,7 @@ import (
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.options",
-		Documentation: "Typed option primitives backed by dappco.re/go",
+		Documentation: "Typed option primitives backed by github.com/dappcore/go",
 		Functions: map[string]runtime.Function{
 			"new":    newOptions,
 			"set":    setValue,

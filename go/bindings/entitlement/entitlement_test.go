@@ -1,7 +1,7 @@
 package entitlement
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestEntitlement_Register_Good(t *core.T) {

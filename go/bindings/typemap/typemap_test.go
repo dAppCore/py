@@ -1,7 +1,7 @@
 package typemap
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestTypemap_ResultValue_Good(t *core.T) {

@@ -3,18 +3,18 @@ package log
 import (
 	"fmt" // AX-6-exception: log level parser reports unsupported level names during bootstrap.
 
-	core "dappco.re/go"
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
-// Register exposes logging bindings backed by dappco.re/go.
+// Register exposes logging bindings backed by github.com/dappcore/go.
 //
 //	log.Register(interpreter)
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.log",
-		Documentation: "Structured logging backed by dappco.re/go",
+		Documentation: "Structured logging backed by github.com/dappcore/go",
 		Functions: map[string]runtime.Function{
 			"set_level": setLevel,
 			"debug":     debug,

@@ -1,7 +1,7 @@
 package register
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestRegister_DefaultModuleSpecs_Good(t *core.T) {

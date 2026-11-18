@@ -1,7 +1,7 @@
 package ws
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestWs_Register_Good(t *core.T) {

@@ -1,8 +1,8 @@
 package entitlement
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newEntitlementInterpreter registers the entitlement module against a fresh

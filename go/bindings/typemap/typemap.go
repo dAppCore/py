@@ -4,7 +4,7 @@ import (
 	"fmt" // AX-6-exception: bootstrap type mapper reports dynamic Go types before gpython exception mapping lands.
 	"sort"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // ResultValue unwraps a Core Result into a plain Go value.

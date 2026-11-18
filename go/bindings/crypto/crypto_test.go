@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestCrypto_Register_Good(t *core.T) {

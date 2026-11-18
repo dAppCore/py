@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/py/runtime/tier2"
+	"github.com/dappcore/py/go/runtime/tier2"
 )
 
 func TestRun_RunExpression_Good(t *testing.T) {

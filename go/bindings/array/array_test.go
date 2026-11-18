@@ -1,7 +1,7 @@
 package array
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestArray_Register_Good(t *core.T) {

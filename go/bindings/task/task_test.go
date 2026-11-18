@@ -1,7 +1,7 @@
 package task
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestTask_Register_Good(t *core.T) {

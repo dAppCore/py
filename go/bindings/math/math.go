@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings" // AX-6-exception: bootstrap math sorting/keyword diagnostics need Compare, Join, and ToLower.
 
-	"dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // Register exposes math helpers backed by pure Go algorithms.

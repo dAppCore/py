@@ -4,8 +4,8 @@
 package gpython
 
 import (
-	"dappco.re/go/py/runtime/bootstrap"
-	"dappco.re/go/py/runtime/internal/contract"
+	"github.com/dappcore/py/go/runtime/bootstrap"
+	"github.com/dappcore/py/go/runtime/internal/contract"
 )
 
 // Interpreter is the gpython backend shell.

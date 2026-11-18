@@ -1,7 +1,7 @@
 package typemap
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestTypemap_ExpectString_Real_Good returns the string at the index.

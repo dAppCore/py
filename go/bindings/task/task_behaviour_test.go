@@ -1,9 +1,9 @@
 package task
 
 import (
-	core "dappco.re/go"
-	actionbinding "dappco.re/go/py/bindings/action"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	actionbinding "github.com/dappcore/py/go/bindings/action"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newTaskInterpreter registers the task and action modules against a fresh

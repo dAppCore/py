@@ -3,8 +3,8 @@ package bootstrap
 import (
 	"strings"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime/internal/contract"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime/internal/contract"
 )
 
 // echoModule returns a module exposing a single round-trip echo function.

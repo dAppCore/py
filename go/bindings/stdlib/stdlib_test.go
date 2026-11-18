@@ -1,7 +1,7 @@
 package stdlib
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestStdlib_Specs_Good(t *core.T) {

@@ -1,7 +1,7 @@
 package contract
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestTypes_UnsupportedImportError_Error_Good(t *core.T) {

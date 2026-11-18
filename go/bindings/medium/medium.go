@@ -5,9 +5,9 @@ import (
 	"path/filepath" // AX-6-exception: file-backed Medium writes need parent directory resolution.
 	"unicode/utf8"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // Register exposes Medium bindings for memory and filesystem-backed content.
