@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newCryptoInterpreter registers the crypto module against a fresh bootstrap

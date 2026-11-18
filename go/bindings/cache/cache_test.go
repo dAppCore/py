@@ -1,7 +1,7 @@
 package cache
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestCache_Register_Good(t *core.T) {

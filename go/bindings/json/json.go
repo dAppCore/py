@@ -1,18 +1,18 @@
 package json
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
-// Register exposes JSON bindings backed by dappco.re/go.
+// Register exposes JSON bindings backed by github.com/dappcore/go.
 //
 //	json.Register(interpreter)
 func Register(interpreter runtime.Interpreter) error {
 	return interpreter.RegisterModule(runtime.Module{
 		Name:          "core.json",
-		Documentation: "JSON helpers backed by dappco.re/go",
+		Documentation: "JSON helpers backed by github.com/dappcore/go",
 		Functions: map[string]runtime.Function{
 			"dumps": dumps,
 			"loads": loads,

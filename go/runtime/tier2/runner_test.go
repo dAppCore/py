@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime/tier2"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime/tier2"
 )
 
 func TestRunner_RunSource_StreamsAndCaptures_Good(t *testing.T) {

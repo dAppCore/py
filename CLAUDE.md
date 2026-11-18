@@ -2,7 +2,7 @@
 
 Python binding for Core primitives. Polyglot repo: Go host + Python userland.
 
-**Module:** `dappco.re/go/py` (Go host)
+**Module:** `github.com/dappcore/py/go` (Go host)
 **Python package:** `core` (under `py/core/`)
 **Spec:** `plans/code/core/py/RFC.md`
 

@@ -1,8 +1,8 @@
 package json
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newJSONInterpreter registers the json module against a fresh bootstrap

@@ -1,8 +1,8 @@
 package register
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // TestRegister_DefaultModules_Real_Good registers the full default module set

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newSCMInterpreter registers the scm module against a fresh bootstrap

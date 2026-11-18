@@ -1,8 +1,8 @@
 package info
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newInfoInterpreter registers the info module against a fresh bootstrap

@@ -9,8 +9,8 @@ import (
 	"encoding/hex"
 	"fmt" // AX-6-exception: crypto helpers preserve wrapped stdlib errors from hashing/decoding/randomness.
 
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // Register exposes hashing and encoding helpers.

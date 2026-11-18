@@ -1,7 +1,7 @@
 package agent
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestAgent_Register_Good(t *core.T) {

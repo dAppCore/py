@@ -3,7 +3,7 @@
 package gpython
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestInterpreter_New_Good(t *core.T) {

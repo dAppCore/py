@@ -4,10 +4,10 @@ import (
 	"fmt" // AX-6-exception: task bootstrap validation reports dynamic Go types and action names.
 	"maps"
 
-	core "dappco.re/go"
-	actionbinding "dappco.re/go/py/bindings/action"
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	actionbinding "github.com/dappcore/py/go/bindings/action"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 type Step struct {

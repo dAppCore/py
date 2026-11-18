@@ -1,7 +1,7 @@
 package log
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestLog_Register_Good(t *core.T) {

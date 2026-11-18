@@ -1,7 +1,7 @@
 package action
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestAction_Register_Good(t *core.T) {

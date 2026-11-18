@@ -10,8 +10,8 @@ import (
 	"strings" // AX-6-exception: cache normalization needs Reader, ReplaceAll, and ContainsAny.
 	"time"
 
-	"dappco.re/go/py/bindings/typemap"
-	"dappco.re/go/py/runtime"
+	"github.com/dappcore/py/go/bindings/typemap"
+	"github.com/dappcore/py/go/runtime"
 )
 
 const defaultTTL = time.Hour

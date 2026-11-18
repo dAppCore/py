@@ -1,8 +1,8 @@
 package store
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newStoreInterpreter registers the store module against a fresh bootstrap

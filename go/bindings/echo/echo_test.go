@@ -1,7 +1,7 @@
 package echo
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestEcho_Register_Good(t *core.T) {

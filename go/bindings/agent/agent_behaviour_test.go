@@ -1,8 +1,8 @@
 package agent
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newAgentInterpreter registers the agent module against a fresh bootstrap

@@ -1,7 +1,7 @@
 package fs
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestFs_Register_Good(t *core.T) {

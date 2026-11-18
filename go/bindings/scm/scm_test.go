@@ -1,7 +1,7 @@
 package scm
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestScm_Register_Good(t *core.T) {

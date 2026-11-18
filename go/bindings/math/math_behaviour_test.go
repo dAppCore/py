@@ -3,8 +3,8 @@ package mathbinding
 import (
 	stdmath "math"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newMathInterpreter registers the math modules against a fresh bootstrap

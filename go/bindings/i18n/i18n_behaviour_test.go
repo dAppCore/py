@@ -1,8 +1,8 @@
 package i18n
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newI18nInterpreter registers the i18n module against a fresh bootstrap

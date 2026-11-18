@@ -1,8 +1,8 @@
 package stringsbinding
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newStringsInterpreter registers the strings module against a fresh bootstrap

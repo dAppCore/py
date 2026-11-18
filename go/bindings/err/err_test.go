@@ -1,7 +1,7 @@
 package err
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestErr_Register_Good(t *core.T) {

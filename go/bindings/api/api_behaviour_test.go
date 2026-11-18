@@ -1,8 +1,8 @@
 package api
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newAPIInterpreter registers the api module against a fresh bootstrap

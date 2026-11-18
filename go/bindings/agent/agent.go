@@ -1,6 +1,6 @@
 package agent
 
-import "dappco.re/go/py/runtime"
+import "github.com/dappcore/py/go/runtime"
 
 // Register exposes the planned Agent module surface.
 //

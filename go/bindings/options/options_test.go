@@ -1,7 +1,7 @@
 package options
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestOptions_Register_Good(t *core.T) {

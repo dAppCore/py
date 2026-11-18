@@ -1,7 +1,7 @@
 package medium
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMedium_Register_Good(t *core.T) {

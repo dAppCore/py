@@ -1,7 +1,7 @@
 package stringsbinding
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestStrings_Register_Good(t *core.T) {

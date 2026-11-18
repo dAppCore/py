@@ -3,8 +3,8 @@ package medium
 import (
 	"path/filepath"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newMediumInterpreter registers the medium module against a fresh bootstrap

@@ -1,7 +1,7 @@
 package dns
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestDns_Register_Good(t *core.T) {

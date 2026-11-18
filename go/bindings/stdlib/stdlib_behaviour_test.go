@@ -1,8 +1,8 @@
 package stdlib
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newStdlibInterpreter registers the stdlib shadow modules against a fresh

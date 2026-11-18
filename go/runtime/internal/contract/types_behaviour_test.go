@@ -1,7 +1,7 @@
 package contract
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestTypes_UnsupportedImportError_Named_Good includes the module name.

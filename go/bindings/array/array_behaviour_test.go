@@ -1,8 +1,8 @@
 package array
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/runtime"
 )
 
 // newArrayInterpreter registers the array module against a fresh bootstrap

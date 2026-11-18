@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/py/bindings/register"
-	corepyruntime "dappco.re/go/py/runtime"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/py/go/bindings/register"
+	corepyruntime "github.com/dappcore/py/go/runtime"
 )
 
 type lifecycleService struct {
@@ -628,7 +628,7 @@ func TestInterpreter_Call_Primitives_Good(t *testing.T) {
 		t.Fatalf("list services: %v", err)
 	}
 	// core.New() carries no built-in services by default — "cli" is
-	// opt-in via core.WithCli() (dappco.re/go v0.12.0, core.go/contract.go)
+	// opt-in via core.WithCli() (github.com/dappcore/go v0.12.0, core.go/contract.go)
 	// — so the only guaranteed entry here is the one just registered.
 	names := serviceNames.([]string)
 	if len(names) == 0 || names[len(names)-1] != "brain" {

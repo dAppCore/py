@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"strings"
 
-	"dappco.re/go/py/runtime/bootstrap"
-	"dappco.re/go/py/runtime/internal/contract"
+	"github.com/dappcore/py/go/runtime/bootstrap"
+	"github.com/dappcore/py/go/runtime/internal/contract"
 )
 
 const (

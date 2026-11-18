@@ -1,7 +1,7 @@
 package registry
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestRegistry_Register_Good(t *core.T) {

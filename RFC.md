@@ -25,7 +25,7 @@ tags:
 > interpreter required.
 
 **Python package:** `core` (distributed as `dappco.re/py/core` source tree)
-**Go host:** `dappco.re/go/py` (embeds gpython + exposes primitives as Python modules)
+**Go host:** `github.com/dappcore/py/go` (embeds gpython + exposes primitives as Python modules)
 **Upstream gpython:** `github.com/go-python/gpython` → forked to `LetheanNetwork/gpython` (dev branch)
 **Repo:** `core/py` (polyglot — Go host + Python userland)
 
@@ -383,7 +383,7 @@ core/py/
 ### 8.2 Tier 1 Distribution (gpython-embedded)
 
 Tier 1 CorePy ships as part of any CoreGO binary that imports
-`dappco.re/go/py`. There is no separate install step — the Python
+`github.com/dappcore/py/go`. There is no separate install step — the Python
 package is embedded in the binary at build time.
 
 Running Python code:

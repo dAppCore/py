@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"dappco.re/go/py/bindings/register"
-	corepyruntime "dappco.re/go/py/runtime"
-	"dappco.re/go/py/runtime/tier2"
+	"github.com/dappcore/py/go/bindings/register"
+	corepyruntime "github.com/dappcore/py/go/runtime"
+	"github.com/dappcore/py/go/runtime/tier2"
 )
 
 const version = "0.5.0"
